@@ -12,6 +12,7 @@ class MyHTMLParser(HTMLParser):
 		if tag=='td':
 			#print "Recording? " + `self.recording`
 			#print "Encountered a start tag:", tag
+			self.data.append(u'NA')
 			self.recording += 1
 
 	def handle_endtag(self, tag):
@@ -23,11 +24,12 @@ class MyHTMLParser(HTMLParser):
 	def handle_data(self, data):
 		if self.recording:
 			#print "Encountered some data:", data
-			self.data.append(data)
+			if data != "Legend Double Dagger":
+				self.data[-1] = data
 
 def readStationDay(stationID, year, month, day):
 	base = "http://climate.weather.gc.ca/climateData/hourlydata_e.html"
-	base = base + "?timeframe=1&Prov=ON&StationID=51459"
+	base = base + "?timeframe=1&Prov=ON"
 	theUrl = base + "&StationID=" + `stationID` + \
 			"&Year=" + `year` + \
 			"&Month=" + `month` + "&Day=" + `day`
@@ -36,10 +38,6 @@ def readStationDay(stationID, year, month, day):
 	parser = MyHTMLParser()
 	parser.feed(page.text)
 	return parser
-
-#def chunker(seq, size):
-#	return (seq[pos:pos + size] \
-#		for pos in xrange(0, len(seq), size))
 
 def readStationCoord(data):
 	# take table data list and extract station info
@@ -67,49 +65,56 @@ def readStationCoord(data):
 		'symbol': data[16]
 		}
 
+def daysInMonth(year, month):
+	dim = [31, 28, 31, 30, 31, 30, 31, 31,\
+		30, 31, 30, 31]
+	if month==2:
+		# check if leap year
+		if year%4 == 0 and (year%100 != 0 or year%400 == 0):
+			return 29
+	return dim[month-1]
+
 def readHour(data):
 	hour = data[0]
-	temp = data[2]
-	dewp = data[3]
-	humid = data[4]
-	winddir = data[5]
-	windsp = data[6]
-	visible = data[7]
-	press = data[8]
+	temp = data[1]
+	dewp = data[2]
+	humid = data[3]
+	winddir = data[4]
+	windsp = data[5]
+	visible = data[6]
+	press = data[7]
+	hmdx = data[8]
+	chill = data[9]
+	weather = data[10]
 	return {'hour': hour, 'temp': temp, \
 		'dewp': dewp, 'humid': humid, \
 		'winddir': winddir, 'windsp': windsp, \
 		'visibility': visible, \
-		'pressure': press}
+		'pressure': press, 'hmdx': hmdx, \
+		'chill': chill, 'weather': weather}
 
 def readDay(data):
-	# find indices of rows in data
-	indices = [i-1 for i, \
-		x in enumerate(data) \
-		if x == "Legend Double Dagger"]
+	import re
+	timePattern = re.compile('[0-9]{2}:[0-9]{2}')
+	# find indices of times in data
+	indices = [i for i,x in enumerate(data) \
+			if timePattern.match(x)]
 	hours = []
 	for hour in indices:
 		hours.append(readHour(data[hour:]))
 	return hours
 
 def readToronto():
-	counter = 0
-	days = []
+	date = []
 	data = []
 	year = 2014
 	stationID = 51459
-	for month in range(12):
-		for day in range(30):
+	for month in range(1,13):
+		for day in range(1,daysInMonth(year,month)+1):
 			stationDay = readStationDay(stationID, \
 					year, month, day)
-			counter += 1
-			days.append(counter)
+			date.append("%d-%02d-%02d" % (year,month,day))
 			data.append(readDay(stationDay.data))
-	return days, data
-
-
-
-
-
+	return date, data
 
 		
