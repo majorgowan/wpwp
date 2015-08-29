@@ -43,8 +43,8 @@ def daysInMonth(year, month):
 def readDay(data):
 	hourlyData = []
 	# strip trailing whitespace and split into lines (note html/text newline)
-	lines = data.strip().split('<br />\n')
-	headings = lines[0].strip('\n').split(',')
+	lines = data.strip().strip('<br />').split('<br />\n')
+	headings = lines[0].strip('<br />\n').split(',')
 	for line in lines[1:]:
 		hourlyData.append(dict(zip(headings, line.split(','))))
 		if 'TemperatureC' not in hourlyData[-1].keys():
@@ -87,30 +87,45 @@ def readDay(data):
 
 
 #------------- read a block of months from a single station
-def readYear(stationCode, year, months = (1,12)):
-	from time import sleep
+def readInterval(stationCode, start, end):
+	# stationCode : string (e.g. 'CYYZ' for Toronto Pearson)
+	# start, end : strings in form "YYYY-MM"
 	date = []
 	data = []
 	failures = []
-	for month in range(months[0],months[1]+1):
-		for day in range(1,daysInMonth(year,month)+1):
-			stationDay = readStationDay(stationCode, \
-					year, month, day)
-			oneDay, success = readDay(stationDay)
-			if success == -1: 
-				print "retrieval error: ", year, month, day
-				failures.append((len(data), \
+	startYear = int(start[:4]);  endYear = int(end[:4])
+	startMonth = int(start[5:]); endMonth = int(end[5:])
+	for year in range(startYear,endYear+1):
+		if year == startYear: 
+			sMonth = startMonth
+		else:
+			sMonth = 1
+		if year == endYear: 
+			eMonth = endMonth
+		else:
+			eMonth = 12
+		for month in range(sMonth,eMonth+1):
+			for day in range(1,daysInMonth(year,month)+1):
+				stationDay = readStationDay(stationCode, \
+						year, month, day)
+				oneDay, success = readDay(stationDay)
+				if success == -1: 
+					print "retrieval error: ", \
+						year, month, day
+					failures.append((len(data), \
 						stationCode, year, month, day))
-			date.append(datetime.date(year,month,day))
-			data.append(oneDay)
+				date.append(datetime.date(year,month,day))
+				data.append(oneDay)
 	# go back and redo failures!
-	print "\n\n", len(failures), "failures!! . . .\n\n\n"
+	print "\n\nThere were", len(failures), "failures!! . . .\n\n\n"
 	while len(failures) > 0:
+		# copy failures from last pass
 		lastFailures = failures[:]
+		# keep track of failures from this pass
 		failures = []
 		for fail in lastFailures:
 			print "retrying ", fail, ". . ."
-			stationDay = readStationDay(fail[1],fail[2],fail[3],fail[4])
+			stationDay = readStationDay(*fail[1:])
 			oneDay, success = readDay(stationDay)
 			if success == -1: 
 				print "failed again!"
@@ -165,24 +180,19 @@ def makeDateTime(date, time):
 #------------- plot a variable over a time interval
 #-- process variable
 def processVariable(var,data,indices):
-	# construct list for the new variable
+	from datetime import datetime as dt
+	# get values of variable and dates for desired range
 	varlist = [hour[var] for day in data[indices[0]:indices[1]+1] for hour in day]
-	# clean up date (convert to floats)
+	datelist = [dt.strptime(hour['DateUTC'],'%Y-%m-%d %X') \
+			for day in data[indices[0]:indices[1]+1] for hour in day]
+	# replace -9999 values with empty string
+	for i,value in enumerate(varlist):
+		if varlist[i] == '-9999': varlist[i] = '' 
+	# clean up data (convert to floats)
 	varlist = removeMissing(varlist)
 	# convert to floats
 	varlist = [float(value) for value in varlist]
-	return varlist
-#-- generate datetime objects
-def processDateTime(date, indices):
-	datelist = [day for day in date[indices[0]:indices[1]+1]]
-	datelist = [dayCopy for dayOfHours \
-			in [24*[oneDay] for oneDay in datelist] \
-			for dayCopy in dayOfHours]
-	hoursInDays = (indices[1]-indices[0]+1)*range(24)
-	dateTimeList = [datetime.datetime.combine(oneTime[0], \
-			datetime.time(hour=oneTime[1])) \
-			for oneTime in zip(datelist,hoursInDays)]
-	return dateTimeList
+	return datelist, varlist
 
 def plotData(date, data, var, start_date, end_date, title=''):
 	import matplotlib.pyplot as plt
@@ -200,16 +210,14 @@ def plotData(date, data, var, start_date, end_date, title=''):
 		return -1
 	else:
 		print "index range plotted: ", indices
-	# construct list for the plot variable
-	varlist = processVariable(var,data,indices)
-	# get requested times as datetime objects
-	dateTimeList = processDateTime(date, indices)
+	# construct list of (date, var) pairs for the plot variable
+	datelist, varlist = processVariable(var,data,indices)
 	# make plot
 	fig = plt.figure()
 	ax = fig.add_subplot(111)
 	ax.grid(True)
 	# ax.plot(range(len(varlist)),varlist)
-	ax.plot(dateTimeList,varlist)
+	ax.plot(datelist,varlist)
 	ax.xaxis.set_major_locator(months)
 	ax.xaxis.set_major_formatter(theFormat)
 	ax.xaxis.set_minor_locator(daysLocator)
@@ -224,6 +232,9 @@ def computeStatistic(var,stat,data,indices):
 	theStat = []
 	for ind in range(indices[0],indices[1]+1):
 		varday = [hour[var] for hour in data[ind]]
+		# replace -9999 values with empty string
+		for i,value in enumerate(varday):
+			if varday[i] == '-9999': varday[i] = '' 
 		varday = removeMissing(varday)
 		varday = [float(value) for value in varday]
 		if stat == 'mean':
@@ -267,6 +278,47 @@ def plotDailyStat(date, data, var, start_date, end_date, stat='mean', title=''):
 	plt.title(title)
 	fig.autofmt_xdate()
 	plt.show()
+
+#------------- min, mean, max plot of a variable over a time interval
+def plotDailyRange(date, data, var, start_date, end_date, title=''):
+	import matplotlib.pyplot as plt
+	import matplotlib.dates as mdates
+	years = mdates.YearLocator()   # every year
+	months = mdates.MonthLocator()  # every month
+	daysLocator = mdates.DayLocator()  # every day
+	theFormat = mdates.DateFormatter('%Y-%b')
+	# find indices of start and end dates
+	indices = [i for i,x in enumerate(date) \
+			if x.isoformat() == start_date \
+			or x.isoformat() == end_date]
+	if len(indices) < 2:
+		print "dates not in range"
+		return -1
+	else:
+		print "index range plotted: ", indices
+	# for each day, process variable and compute statistic
+	theMin = computeStatistic(var,'min',data,indices)
+	theMax = computeStatistic(var,'max',data,indices)
+	theMean = computeStatistic(var,'mean',data,indices)
+	# get requested dates 
+	datelist = [day for day in date[indices[0]:indices[1]+1]]
+	# make plot
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	ax.grid(True)
+	# ax.plot(range(len(varlist)),varlist)
+	ax.fill_between(datelist,theMin,theMax, facecolor='wheat')
+	ax.plot(datelist,theMin,color='b')
+	ax.plot(datelist,theMax,color='r')
+	ax.plot(datelist,theMean,color='k')
+	ax.xaxis.set_major_locator(months)
+	ax.xaxis.set_major_formatter(theFormat)
+	ax.xaxis.set_minor_locator(daysLocator)
+	plt.ylabel('Daily range of ' + var)
+	plt.title(title)
+	fig.autofmt_xdate()
+	plt.show()
+
 
 #------------- comparison plot of a daily statistic over a time interval
 def compareDailyStat(date, dataList, var, start_date, end_date, stat='mean', title=''):
