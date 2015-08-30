@@ -2,6 +2,67 @@ import requests
 import datetime
 import numpy
 
+###############################################################
+###################### EXAMPLE ################################
+############################################################### 
+def TorontoMontreal_Winter_2002_2003():
+	# load matplotlib.pyplot
+	import matplotlib.pyplot as plt
+	# accumulate data from weather underground
+	dates, tor, tor_fails = readInterval('CYYZ','2002-12','2003-03')
+	dates, mtl, mtl_fails = readInterval('CYUL','2002-12','2003-03')
+	# plot daily temperature and pressure range for Toronto:
+	# -- remove any failures from data list
+	fail_indices = [fl[0] for fl in tor_fails]
+	plotDate = []; plotData = []
+	for iday in range(len(dates)):
+		if iday not in fail_indices:
+			plotDate.append(dates[iday])
+			plotData.append(tor[iday])
+	# -- plot ranges
+	plotDailyRange(plotDate, plotData, 'Sea Level PressurehPa', \
+			'2002-12-21', '2003-03-20', \
+			title='Toronto Winter 2002-2003', show=False)
+	plotDailyRange(plotDate, plotData, 'TemperatureC', \
+			'2002-12-21', '2003-03-20', \
+			title='Toronto Winter 2002-2003', show=False)
+	# compare daily minimum temperature from Toronto and Montreal
+	# -- remove days missing from one or the other
+	fail_indices = [fl[0] for fl in tor_fails] \
+			and [fl[0] for fl in mtl_fails]
+	plotDate = []; plotTor = []; plotMtl = []
+	for iday in range(len(dates)):
+		if iday not in fail_indices:
+			plotDate.append(dates[iday])
+			plotTor.append(tor[iday])
+			plotMtl.append(mtl[iday])
+	# -- plot
+	compareDailyStat(plotDate, [plotTor, plotMtl], 'TemperatureC', \
+			'2002-12-21', '2003-03-20', \
+			leg = ['Toronto', 'Montreal'], \
+			stat='min', \
+			title='Winter 2002-2003', \
+			show=False)
+	# repeat for max wind speed
+	compareDailyStat(plotDate, [plotTor, plotMtl], 'Wind SpeedKm/h', \
+			'2002-12-21', '2003-03-20', \
+			leg = ['Toronto', 'Montreal'], \
+			stat='max', \
+			title='Winter 2002-2003', \
+			show=False)
+	# repeat for min humidity
+	compareDailyStat(plotDate, [plotTor, plotMtl], 'Humidity', \
+			'2002-12-21', '2003-03-20', \
+			leg = ['Toronto', 'Montreal'], \
+			stat='min', \
+			title='Winter 2002-2003', \
+			show=False)
+	# show plots
+	plt.show()
+
+###############################################################
+###################### RETRIEVE WUNDERGROUND PAGE #############
+###############################################################
 #------------- use HTML parser to download web page with day of hourly data
 def readStationDay(stationCode, year, month, day, echo=False):
 	base = "http://www.wunderground.com/history/airport/"
@@ -13,7 +74,7 @@ def readStationDay(stationCode, year, month, day, echo=False):
 	return page.text
 
 #------------- get station position (find from other source)
-#def readStationCoord(data):
+def readStationCoord(data):
 #	# latitude:
 #	degrees = 
 #	minutes = 
@@ -28,6 +89,7 @@ def readStationDay(stationCode, year, month, day, echo=False):
 #		'lat': round(latitude,3), \
 #		'alt': round(elevation,3), \
 #		}
+	pass
 
 #------------- get number of days in given month (includes leap year calculator)
 def daysInMonth(year, month):
@@ -39,7 +101,7 @@ def daysInMonth(year, month):
 			return 29
 	return dim[month-1]
 
-#------------- convert an hour of data from raw list to dictionary
+#------------- convert an hour of data from raw list to a dictionary
 def readDay(data):
 	hourlyData = []
 	# strip trailing whitespace and split into lines (note html/text newline)
@@ -52,6 +114,9 @@ def readDay(data):
 	# print 'success', headings
 	return hourlyData, 0
 
+###############################################################
+###################### MAIN DATA RETRIEVAL ROUTINE ############
+###############################################################
 #------------- airport codes
 # Halifax:       CYHZ
 # Ottawa:        CYOW
@@ -84,7 +149,8 @@ def readDay(data):
 # Kansas City:	 KMCI
 # Dallas:	 KDFW
 # Oklahoma City: KOKC
-
+# --
+# Frankfurt:     EDDF
 
 #------------- read a block of months from a single station
 def readInterval(stationCode, start, end):
@@ -92,10 +158,13 @@ def readInterval(stationCode, start, end):
 	# start, end : strings in form "YYYY-MM"
 	date = []
 	data = []
+	# keep track of read failures (usu. page with headings and no data)
 	failures = []
 	startYear = int(start[:4]);  endYear = int(end[:4])
 	startMonth = int(start[5:]); endMonth = int(end[5:])
+	# loop over years
 	for year in range(startYear,endYear+1):
+		# compute start and end month for this year
 		if year == startYear: 
 			sMonth = startMonth
 		else:
@@ -104,21 +173,28 @@ def readInterval(stationCode, start, end):
 			eMonth = endMonth
 		else:
 			eMonth = 12
+		# loop over months in year
 		for month in range(sMonth,eMonth+1):
+			# loop over days in month
 			for day in range(1,daysInMonth(year,month)+1):
 				stationDay = readStationDay(stationCode, \
 						year, month, day)
 				oneDay, success = readDay(stationDay)
+				# if read failure, save the date and index
 				if success == -1: 
 					print "retrieval error: ", \
 						year, month, day
 					failures.append((len(data), \
 						stationCode, year, month, day))
+				# append data to lists
 				date.append(datetime.date(year,month,day))
 				data.append(oneDay)
-	# go back and redo failures!
 	print "\n\nThere were", len(failures), "failures!! . . .\n\n\n"
-	while len(failures) > 0:
+	# go back and retry failures (up to maxIter times)
+	ii = 0
+	maxIter = 5
+	while len(failures) > 0 and ii < maxIter:
+		ii += 1
 		# copy failures from last pass
 		lastFailures = failures[:]
 		# keep track of failures from this pass
@@ -134,8 +210,12 @@ def readInterval(stationCode, start, end):
 				print ". . . Gotcha!"
 			data[fail[0]] = oneDay
 		print "\n\n  now [only]", len(failures), "failures!! . . .\n\n\n"
-	return date, data
+	# any remaining failures probably genuinely missing data
+	return date, data, failures
 
+###############################################################
+###################### FILE I/O ###############################
+###############################################################
 #------------- write data to file
 def writeToFile(station, data):
 	pass
@@ -144,7 +224,10 @@ def writeToFile(station, data):
 def readFromFile(fileName):
 	pass
 
-#------------- replace missing values in vector with averages
+###############################################################
+###################### DATA CLEANING ##########################
+###############################################################
+#------------- replace missing values in a list with averages
 #------------- of nearest non-missing values
 #-- get last (sign=-1) or next (sign=+1) valid float in data
 def nextFloat(data, index, sign):
@@ -173,10 +256,10 @@ def removeMissing(data):
 				if num != '9999']))
 	return data
 
-#------------- construct date and time string
-def makeDateTime(date, time):
-	return date + ' ' + time
 
+###############################################################
+###################### PLOTTING ROUTINES ######################
+###############################################################
 #------------- plot a variable over a time interval
 #-- process variable
 def processVariable(var,data,indices):
@@ -194,7 +277,7 @@ def processVariable(var,data,indices):
 	varlist = [float(value) for value in varlist]
 	return datelist, varlist
 
-def plotData(date, data, var, start_date, end_date, title=''):
+def plotData(date, data, var, start_date, end_date, title='', show=True):
 	import matplotlib.pyplot as plt
 	import matplotlib.dates as mdates
 	years = mdates.YearLocator()   # every year
@@ -224,7 +307,7 @@ def plotData(date, data, var, start_date, end_date, title=''):
 	plt.ylabel(var)
 	plt.title(title)
 	fig.autofmt_xdate()
-	plt.show()
+	if show: plt.show()
 
 #------------- plot a daily statistic over a time interval
 #-- compute statistic
@@ -245,7 +328,8 @@ def computeStatistic(var,stat,data,indices):
 			theStat.append(min(varday))
 	return theStat
 
-def plotDailyStat(date, data, var, start_date, end_date, stat='mean', title=''):
+def plotDailyStat(date, data, var, start_date, end_date, \
+		stat='mean', title='', show=True):
 	import matplotlib.pyplot as plt
 	import matplotlib.dates as mdates
 	years = mdates.YearLocator()   # every year
@@ -277,10 +361,10 @@ def plotDailyStat(date, data, var, start_date, end_date, stat='mean', title=''):
 	plt.ylabel('Daily ' + stat + ' ' + var)
 	plt.title(title)
 	fig.autofmt_xdate()
-	plt.show()
+	if show: plt.show()
 
 #------------- min, mean, max plot of a variable over a time interval
-def plotDailyRange(date, data, var, start_date, end_date, title=''):
+def plotDailyRange(date, data, var, start_date, end_date, title='', show=True):
 	import matplotlib.pyplot as plt
 	import matplotlib.dates as mdates
 	years = mdates.YearLocator()   # every year
@@ -317,11 +401,12 @@ def plotDailyRange(date, data, var, start_date, end_date, title=''):
 	plt.ylabel('Daily range of ' + var)
 	plt.title(title)
 	fig.autofmt_xdate()
-	plt.show()
+	if show: plt.show()
 
 
 #------------- comparison plot of a daily statistic over a time interval
-def compareDailyStat(date, dataList, var, start_date, end_date, stat='mean', title=''):
+def compareDailyStat(date, dataList, var, start_date, end_date, leg = [], \
+		stat='mean', title='', show=True):
 	import matplotlib.pyplot as plt
 	import matplotlib.dates as mdates
 	import matplotlib
@@ -352,13 +437,14 @@ def compareDailyStat(date, dataList, var, start_date, end_date, stat='mean', tit
 	# ax.plot(range(len(varlist)),varlist)
 	for aStat in theStat:
 		ax.plot(datelist,aStat)
+	if len(leg) > 0: ax.legend(leg)
 	ax.xaxis.set_major_locator(months)
 	ax.xaxis.set_major_formatter(theFormat)
 	ax.xaxis.set_minor_locator(daysLocator)
 	plt.ylabel('Daily ' + stat + ' ' + var)
 	plt.title(title)
 	fig.autofmt_xdate()
-	plt.show()
+	if show: plt.show()
 
 
 
