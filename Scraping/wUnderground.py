@@ -46,14 +46,87 @@ plt.title('Difference between daily max temp in Toronto and Montreal')
 plt.ylabel('Daily max temperature (C)')
 plt.legend(handles=[pt,pm])
 plt.show()
-#------------------ 
-#
-# write to JSON files
-
-# read from JSON files
 '''
 #
-#########################
+###############################################################
+########################## JSON I/O ###########################
+###############################################################
+#
+#--
+# write to JSON files
+def putJSON(dates, data, station, year, month):
+     import json
+     import os
+     # check if station folder exists
+     if not os.path.exists(station):
+         os.mkdir(station)
+     # create filename
+     filename = station + '/'
+     filename += station + '_' + str(year) + '_'
+     filename += str('%02d' % month) 
+     filename += '.json'
+     # open file for writing (close automatically)
+     with open(filename, 'w') as outfile:
+          # extract month of data
+          block = [data[i] for i in range(len(dates)) \
+                 if dates[i].year==year and dates[i].month==month]
+          # write block to file
+          outfile.write(json.dumps(block,indent=2))
+#
+# read from JSON files
+#--
+def getJSON(station, year, month):
+     import json
+     # build filename
+     filename = station + '/' + station + '_' + str(year) + '_' \
+                + str('%02d' % month) + '.json'
+     with open(filename, 'r') as infile:
+          data = json.load(infile)
+     # make list of dates
+     dates = []
+     for day in range(1,daysInMonth(year,month)+1):
+         dates.append(datetime.date(year,month,day))
+     return dates, data
+
+#
+# retrieve and store a year from a single station
+#--
+def retrieveStationYear(station, year):
+     start = str(year) + '-01'
+     end = str(year) + '-12'
+     dates, data, fails = readInterval(station, start, end)
+     print('Number of fails ' + str(len(fails)))
+     # store as JSON in month-long blocks
+     for month in range(1,13):
+          putJSON(dates, data, station, year, month)
+     
+# read entire station folder
+#--
+def getJSONFolder(station):
+     import glob
+     import os
+     dates = []
+     data = []
+     for infile in glob.glob(os.path.join(station,'*.json')):
+         station = infile.split('_')[0].split('\\')[0]
+         year = int(infile.split('_')[1])
+         month = int(infile.split('_')[2].split('.')[0])
+         dates0, data0 = getJSON(station,year,month)
+         dates.extend(dates0)
+         data.extend(data0)
+     return dates, data
+          
+#
+'''
+e.g. load 8 years of Pittsburgh:
+for year in range(2005,2013):
+    wUnderground.retrieveStationYear('KPIT', year)
+'''
+#          
+###############################################################
+########################## PLOTTING ###########################
+###############################################################
+#
 #--
 def DrawPlots(plotDate, plotTor, plotMtl):
 	# load matplotlib.pyplot
