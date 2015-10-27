@@ -61,7 +61,7 @@ def putJSON(dates, data, station, year, month):
      if not os.path.exists(station):
          os.mkdir(station)
      # create filename
-     filename = station + '/'
+     filename = 'JSON_DATA/' + station + '/'
      filename += station + '_' + str(year) + '_'
      filename += str('%02d' % month) 
      filename += '.json'
@@ -78,7 +78,8 @@ def putJSON(dates, data, station, year, month):
 def getJSON(station, year, month):
      import json
      # build filename
-     filename = station + '/' + station + '_' + str(year) + '_' \
+     filename = 'JSON_DATA/' \
+                + station + '/' + station + '_' + str(year) + '_' \
                 + str('%02d' % month) + '.json'
      with open(filename, 'r') as infile:
           data = json.load(infile)
@@ -107,10 +108,10 @@ def getJSONFolder(station):
      import os
      dates = []
      data = []
-     for infile in glob.glob(os.path.join(station,'*.json')):
-         station = infile.split('_')[0].split('\\')[0]
-         year = int(infile.split('_')[1])
-         month = int(infile.split('_')[2].split('.')[0])
+     for infile in glob.glob(os.path.join('JSON_DATA\\' + station,'*.json')):
+         station = infile.split('\\')[1]
+         year = int(infile.split('\\')[2].split('_')[1])
+         month = int(infile.split('\\')[2].split('_')[2].split('.')[0])
          dates0, data0 = getJSON(station,year,month)
          dates.extend(dates0)
          data.extend(data0)
@@ -338,17 +339,6 @@ def readInterval(stationCode, start, end):
 	return date, data, failures
 
 ###############################################################
-###################### FILE I/O ###############################
-###############################################################
-#------------- write data to file
-def writeToFile(station, data):
-	pass
-
-#------------- read data from file
-def readFromFile(fileName):
-	pass
-
-###############################################################
 ###################### DATA CLEANING ##########################
 ###############################################################
 #------------- replace missing values in a list with averages
@@ -379,7 +369,6 @@ def removeMissing(data):
 				for num in [last_float, next_float] \
 				if num != '9999']))
 	return data
-
 
 ###############################################################
 ###################### PLOTTING ROUTINES ######################
@@ -569,6 +558,3 @@ def compareDailyStat(date, dataList, var, start_date, end_date, leg = [], \
 	plt.title(title)
 	fig.autofmt_xdate()
 	if show: plt.show()
-
-
-
