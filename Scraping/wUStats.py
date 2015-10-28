@@ -1,6 +1,56 @@
-import wUnderground as wu
-import datetime
-import numpy
+###############################################################
+###################### COLLECT DAILY STATS ####################
+###############################################################
+#
+def collectAllStats():
+     import wUnderground as wU
+     stations = getStationList()
+     stations = ['CYYZ', 'CYUL']
+     for station in stations:
+          dates, data = wU.getJSONFolder(station)
+          TempMean = dailyMean(data,'TemperatureC')
+          TempMin, TempMinTime = dailyMax(data,'TemperatureC',-1)
+          TempMax, TempMaxTime = dailyMax(data,'TemperatureC',1)
+          TotalPrecip = dailySum(data,'Precipitationmm')
+          VisibilityMean = dailyMean(data,'VisibilityKm')
+          PressMean = dailyMean(data, 'Sea Level PressurehPa')
+          PressMin, PressMinTime = dailyMax(data,'Sea Level PressurehPa',-1)
+          PressMax, PressMaxTime = dailyMax(data,'Sea Level PressurehPa',1)         
+          HumidityMean = dailyMean(data,'Humidity')
+          WindMaxSpd, WindMaxDir, WindMaxTime = dailyMaxWind(data)
+          
+          addWindVectors(data)
+          WindMeanX = dailyMean(data,'xSpeed')
+          WindMeanY = dailyMean(data,'ySpeed')
+
+          print('date, TempMean, TempMin, TempMinTime, ' \
+                + 'TempMax, TempMaxTime, TotalPrecip, VisibilityMean, ' \
+                + 'PressMean, PressMin, PressMinTime, ' \
+                + 'PressMax, PressMaxTime, HumidityMean, ' \
+                + 'WindMaxSpd, WindMaxDir, WindMaxTime, ' \
+                + 'WindMeanX, WindMeanY')
+          for ii in [0, 1, 2]:
+               dataString = dates[ii].isoformat() + ', '
+               dataString += unicode('%.2f' % TempMean[ii]) + ', '
+               dataString += unicode(TempMin[ii]) + ', '
+               dataString += unicode(TempMinTime[ii]) + ', '
+               dataString += unicode(TempMax[ii]) + ', '
+               dataString += unicode(TempMaxTime[ii]) + ', '
+               dataString += unicode(TotalPrecip[ii]) + ', '
+               dataString += unicode('%.1f' % VisibilityMean[ii]) + ', '
+               dataString += unicode('%.0f' % PressMean[ii]) + ', '
+               dataString += unicode(PressMin[ii]) + ', '
+               dataString += unicode(PressMinTime[ii]) + ', '
+               dataString += unicode(PressMax[ii]) + ', '
+               dataString += unicode(PressMaxTime[ii]) + ', '
+               dataString += unicode('%.0f' % HumidityMean[ii]) + ', '
+               dataString += unicode(WindMaxSpd[ii]) + ', '
+               dataString += unicode(WindMaxDir[ii]) + ', '
+               dataString += unicode(WindMaxTime[ii]) + ', '
+               dataString += unicode('%.2f' % WindMeanX[ii]) + ', '
+               dataString += unicode('%.2f' % WindMeanY[ii])
+               print(dataString)
+
 
 ###############################################################
 ###################### GET ALL STATIONS #######################
@@ -22,6 +72,27 @@ def isMissing(valString):
           return True
      else:
           return False
+
+#
+def addWindVectors(data):
+     import math
+     radperdeg = math.pi/180.0
+     for day in data:
+          for hour in day:
+               if isMissing(hour['Wind SpeedKm/h']) or \
+                  isMissing(hour['WindDirDegrees']):
+                    hour[u'xSpeed'] = u'N/A'
+                    hour[u'ySpeed'] = u'N/A'
+               elif hour['Wind SpeedKm/h'] == 'Calm':
+                    hour[u'xSpeed'] = u'0.0'
+                    hour[u'ySpeed'] = u'0.0'
+               else:
+                    xs = - float(hour['Wind SpeedKm/h']) * \
+                         math.cos(radperdeg*float(hour['WindDirDegrees']))
+                    ys = - float(hour['Wind SpeedKm/h']) * \
+                         math.sin(radperdeg*float(hour['WindDirDegrees']))
+                    hour[u'xSpeed'] = unicode('%.2f' % xs)
+                    hour[u'ySpeed'] = unicode('%.2f' % ys)
 
 #
 def dailyMean(data, variable):
@@ -56,6 +127,19 @@ def dailyMean(data, variable):
      return dm
 #
 
+def dailySum(data, variable):
+     ds = []
+     for day in data:
+          total = 0.0
+          # isolate time of day and variable
+          for hour in day:
+               value = hour[variable]    
+               if not isMissing(value):
+                    total += float(value)
+          ds.append(total)
+     return ds
+#
+
 def dailyMax(data, variable, minmax=1):
      dm = []
      dmpos = []
@@ -86,7 +170,7 @@ def dailyMax(data, variable, minmax=1):
 def dailyMaxWind(data):
      dmspd = []
      dmdir = []
-     dmpos = []
+     dmtime = []
      # loop over days
      for day in data:
           val = []
@@ -108,56 +192,8 @@ def dailyMaxWind(data):
           maxtime = day[val.index(maxval)]['DateUTC'].split(' ')[1]
           dmspd.append(maxval)
           dmdir.append(maxdir)
-          dmpos.append(maxtime)
-     return dmspd, dmdir, dmpos
-
-def dailyMeanWind(data):
-     import math
-     secperday = 24*60*60
-     radperdeg = math.pi / 180
-     dmxspd = []
-     dmyspd = []
-     # loop over days
-     for day in data:
-          time = []
-          valspd = []
-          valdir = []
-          # isolate time of day and variable
-          for hour in day:
-               todString = hour['DateUTC'].split(' ')[1]
-               tod = todString.split(':')
-               seconds = 3600*int(tod[0]) \
-                         + 60*int(tod[1]) + int(tod[2])
-               value = hour['Wind SpeedKm/h']
-               dirn = hour['WindDirDegrees']
-               if value == 'Calm':
-                   value = '0.0'
-                   dirn = '0.0'
-               # if not missing value
-               if not isMissing(value):
-                    time.append(seconds)
-                    try:
-                        valspd.append(float(value))
-                        valdir.append(float(dirn)*radperdeg)
-                    except:
-                        print(day[0]['DateUTC'] + ' ' + str(value) + ' ' + str(dirn))
-                        return -1
-          # compute mean using trapezoid method
-          xmean = 0.0
-          ymean = 0.0
-          for ii in range(len(time)-1):
-               dt = (time[ii+1]-time[ii]) % secperday
-               xx = 0.5*(valspd[ii]*math.cos(valdir[ii] \
-                       + valspd[ii+1]*math.cos(valdir[ii+1])))
-               yy = -0.5*(valspd[ii]*math.sin(valdir[ii] \
-                       + valspd[ii+1]*math.sin(valdir[ii+1])))
-               xmean += dt*xx
-               ymean += dt*yy
-          xmean /= ((time[-1] - time[0]) % secperday)
-          ymean /= ((time[-1] - time[0]) % secperday)
-          dmxspd.append(xmean)
-          dmyspd.append(ymean)
-     return dmxspd, dmyspd
+          dmtime.append(maxtime)
+     return dmspd, dmdir, dmtime
 
 ###############################################################
 ###################### INTERACTIVE EXAMPLE ####################
