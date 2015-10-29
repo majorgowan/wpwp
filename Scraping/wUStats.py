@@ -4,9 +4,16 @@
 #
 def collectAllStats():
      import wUnderground as wU
+     import os
+     if not os.path.exists('CSV_DATA'):
+         os.mkdir('CSV_DATA')
+     #stations = ['CYYZ', 'CYUL']
      stations = getStationList()
-     stations = ['CYYZ', 'CYUL']
      for station in stations:
+          print('Processing ' + station)
+          # open file for csv output
+          outfile = open('CSV_DATA/' + station + '.csv','w')
+          # calculate summary statistics
           dates, data = wU.getJSONFolder(station)
           TempMean = dailyMean(data,'TemperatureC')
           TempMin, TempMinTime = dailyMax(data,'TemperatureC',-1)
@@ -23,13 +30,15 @@ def collectAllStats():
           WindMeanX = dailyMean(data,'xSpeed')
           WindMeanY = dailyMean(data,'ySpeed')
 
-          print('date, TempMean, TempMin, TempMinTime, ' \
+          headString = 'date, TempMean, TempMin, TempMinTime, ' \
                 + 'TempMax, TempMaxTime, TotalPrecip, VisibilityMean, ' \
                 + 'PressMean, PressMin, PressMinTime, ' \
                 + 'PressMax, PressMaxTime, HumidityMean, ' \
                 + 'WindMaxSpd, WindMaxDir, WindMaxTime, ' \
-                + 'WindMeanX, WindMeanY')
-          for ii in [0, 1, 2]:
+                + 'WindMeanX, WindMeanY'
+          # print(headString)
+          outfile.write(headString + '\n')
+          for ii in range(len(dates)):
                dataString = dates[ii].isoformat() + ', '
                dataString += unicode('%.2f' % TempMean[ii]) + ', '
                dataString += unicode(TempMin[ii]) + ', '
@@ -49,8 +58,11 @@ def collectAllStats():
                dataString += unicode(WindMaxTime[ii]) + ', '
                dataString += unicode('%.2f' % WindMeanX[ii]) + ', '
                dataString += unicode('%.2f' % WindMeanY[ii])
-               print(dataString)
-
+               # write daily summary to csv file
+               outfile.write(dataString + '\n')
+               # print(dataString)
+          outfile.close()
+          
 
 ###############################################################
 ###################### GET ALL STATIONS #######################
