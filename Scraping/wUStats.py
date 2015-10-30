@@ -106,12 +106,48 @@ def addWindVectors(data):
                     hour[u'xSpeed'] = unicode('%.2f' % xs)
                     hour[u'ySpeed'] = unicode('%.2f' % ys)
 
+def seconds(utc):
+     # convert a UTC string to seconds since midnight UTC
+     todString = utc.split(' ')[1]
+     tod = todString.split(':')
+     return 3600*int(tod[0]) + 60*int(tod[1]) + int(tod[2])
+ 
+def toSecondsValues(utc, y):
+     # convert pairs of (UTC, value) to 
+     # (seconds since midnight UTC, value) removing missing values
+     secperday = 24*60*60
+     time = []
+     val = []
+     for ii in range(len(utc)):
+          if not isMissing(y[ii]):
+               if len(time) == 0:
+                    time.append(seconds(utc[ii]))
+               else:
+                    time.append(time[0] \
+                        + (seconds(utc[ii])-time[0]) % secperday)
+               val.append(float(y[ii]))
+     return time, val
+
+def trapezoid(utc, y):
+     secperday = 24*60*60
+     # do a time integral of y over UTC time using trapezoid method
+     # neglecting missing values
+     time, val = toSecondsValues(utc, y)
+     integral = 0.0
+     for ii in range(1,len(val)):
+          integral += 0.5*(float(time[ii] - time[ii-1])) \
+                                       *(val[ii-1] + val[ii])
+     interval = float(time[-1]-time[0])
+     # if full day (first/last times the same), 
+     # set interval to secperday
+     if interval == 0: interval = secperday
+     return interval, integral
+     
 #
 def dailyMean(data, variable):
      dm = []
-     secperday = 24*60*60
      # loop over days
-     for day in data:
+     for index, day in enumerate(data):
           # check if all missing
           allMissing = True
           for hour in day:
@@ -121,30 +157,17 @@ def dailyMean(data, variable):
           if allMissing:
                dm.append(u'N/A')
           else:
-               time = []
-               val = []
-               # isolate time of day and variable
+               times = []
+               values = []
                for hour in day:
-                    todString = hour['DateUTC'].split(' ')[1]
-                    tod = todString.split(':')
-                    seconds = 3600*int(tod[0]) \
-                              + 60*int(tod[1]) + int(tod[2])
-                    value = hour[variable]
-                    # if not missing value
-                    if not isMissing(value):
-                         time.append(seconds)
-                         try:
-                             val.append(float(value))
-                         except:
-                             print(day[0]['DateUTC'] + ' ' + str(value))
-                             return -1
-               # compute mean using trapezoid method
-               onemean = 0.0
-               for ii in range(len(time)-1):
-                    onemean += 0.5*((time[ii+1]-time[ii]) % secperday) \
-                                             * (val[ii]+val[ii+1])
-               onemean /= ((time[-1] - time[0]) % secperday)
-               dm.append(onemean)
+                    times.append(hour['DateUTC'])
+                    values.append(hour[variable])
+               # append first value of next day (if available)
+               if index < len(data)-1:
+                    times.append(data[index+1][0]['DateUTC'])
+                    values.append(data[index+1][0][variable])
+               interval, integral = trapezoid(times, values)
+               dm.append(integral/interval)
      return dm
 #
 
