@@ -112,43 +112,62 @@ def dailyMean(data, variable):
      secperday = 24*60*60
      # loop over days
      for day in data:
-          time = []
-          val = []
-          # isolate time of day and variable
+          # check if all missing
+          allMissing = True
           for hour in day:
-               todString = hour['DateUTC'].split(' ')[1]
-               tod = todString.split(':')
-               seconds = 3600*int(tod[0]) \
-                         + 60*int(tod[1]) + int(tod[2])
                value = hour[variable]
-               # if not missing value
                if not isMissing(value):
-                    time.append(seconds)
-                    try:
-                        val.append(float(value))
-                    except:
-                        print(day[0]['DateUTC'] + ' ' + str(value))
-                        return -1
-          # compute mean using trapezoid method
-          onemean = 0.0
-          for ii in range(len(time)-1):
-               onemean += 0.5*((time[ii+1]-time[ii]) % secperday) \
-                                        * (val[ii]+val[ii+1])
-          onemean /= ((time[-1] - time[0]) % secperday)
-          dm.append(onemean)
+                    allMissing = False
+          if allMissing:
+               dm.append(u'N/A')
+          else:
+               time = []
+               val = []
+               # isolate time of day and variable
+               for hour in day:
+                    todString = hour['DateUTC'].split(' ')[1]
+                    tod = todString.split(':')
+                    seconds = 3600*int(tod[0]) \
+                              + 60*int(tod[1]) + int(tod[2])
+                    value = hour[variable]
+                    # if not missing value
+                    if not isMissing(value):
+                         time.append(seconds)
+                         try:
+                             val.append(float(value))
+                         except:
+                             print(day[0]['DateUTC'] + ' ' + str(value))
+                             return -1
+               # compute mean using trapezoid method
+               onemean = 0.0
+               for ii in range(len(time)-1):
+                    onemean += 0.5*((time[ii+1]-time[ii]) % secperday) \
+                                             * (val[ii]+val[ii+1])
+               onemean /= ((time[-1] - time[0]) % secperday)
+               dm.append(onemean)
      return dm
 #
 
 def dailySum(data, variable):
      ds = []
      for day in data:
-          total = 0.0
-          # isolate time of day and variable
+          # check if all missing
+          allMissing = True
           for hour in day:
-               value = hour[variable]    
+               value = hour[variable]
                if not isMissing(value):
-                    total += float(value)
-          ds.append(total)
+                    allMissing = False
+          if allMissing:
+               ds.append(u'N/A')
+          else:
+               # otherwise
+               total = 0.0
+               # isolate time of day and variable
+               for hour in day:
+                    value = hour[variable]    
+                    if not isMissing(value):
+                         total += float(value)
+               ds.append(total)
      return ds
 #
 
@@ -157,27 +176,60 @@ def dailyMax(data, variable, minmax=1):
      dmpos = []
      # loop over days
      for day in data:
-          val = []
-          # isolate time of day and variable
+          # check if all missing
+          allMissing = True
           for hour in day:
                value = hour[variable]
-               # if not missing value
                if not isMissing(value):
-                    try:
-                        val.append(float(value))
-                    except:
-                        print(day[0]['DateUTC'] + ' ' + str(value))
-                        return -1
-          # compute max or min
-          if minmax == 1:
-               maxval = max(val)
-          elif minmax == -1:
-               maxval = min(val)
-          maxtime = day[val.index(maxval)]['DateUTC'].split(' ')[1]
-          dm.append(maxval)
-          dmpos.append(maxtime)
+                    allMissing = False
+          if allMissing:
+               dm.append(u'N/A')
+               dmpos.append(u'N/A')
+          else:
+               val = []
+               # isolate time of day and variable
+               for hour in day:
+                    value = hour[variable]
+                    # if not missing value
+                    if not isMissing(value):
+                         try:
+                             val.append(float(value))
+                         except:
+                             print(day[0]['DateUTC'] + ' ' + str(value))
+                             return -1
+               # compute max or min
+               if minmax == 1:
+                    maxval = max(val)
+               elif minmax == -1:
+                    maxval = min(val)
+               maxtime = day[val.index(maxval)]['DateUTC'].split(' ')[1]
+               dm.append(maxval)
+               dmpos.append(maxtime)
      return dm, dmpos
 #
+
+# get the nearest non-missing value 
+# (useful if wind direction missing for time of maximum wind)
+def nearestNonMissing(day, variable, index):
+     if not isMissing(day[index][variable]):
+          return day[index][variable]
+     else:
+          print('Missing ' + variable + ' at index ' + str(index) \
+                  + ' on UTC date ' + day[index]['DateUTC'])
+          for ii in range(1,len(day)):
+               if index-ii >= 0:
+                    before = day[index-ii][variable]
+               else:
+                    before = 'N/A'
+               if index+ii < len(day):
+                    after = day[index+ii][variable]
+               else:
+                    after = 'N/A'
+               if not isMissing(before):
+                    return before
+               elif not isMissing(after):
+                    return after
+     return u'N/A'
 
 def dailyMaxWind(data):
      dmspd = []
@@ -185,26 +237,37 @@ def dailyMaxWind(data):
      dmtime = []
      # loop over days
      for day in data:
-          val = []
-          # isolate time of day and variable
+          # check if all missing
+          allMissing = True
           for hour in day:
                value = hour['Wind SpeedKm/h']
-               if value == 'Calm':
-                   value = '0.0'
-               # if not missing value
                if not isMissing(value):
-                    try:
-                        val.append(float(value))
-                    except:
-                        print(day[0]['DateUTC'] + ' ' + str(value))
-                        return -1
-          # compute max or min
-          maxval = max(val)
-          maxdir = int(day[val.index(maxval)]['WindDirDegrees'])
-          maxtime = day[val.index(maxval)]['DateUTC'].split(' ')[1]
-          dmspd.append(maxval)
-          dmdir.append(maxdir)
-          dmtime.append(maxtime)
+                    allMissing = False
+          if allMissing:
+               dmspd.append(u'N/A')
+               dmdir.append(u'N/A')
+               dmtime.append(u'N/A')
+          else:
+               val = []
+               # isolate time of day and variable
+               for hour in day:
+                    value = hour['Wind SpeedKm/h']
+                    if value == 'Calm':
+                        value = '0.0'
+                    # if not missing value
+                    if not isMissing(value):
+                         try:
+                             val.append(float(value))
+                         except:
+                             print(day[0]['DateUTC'] + ' ' + str(value))
+                             return -1
+               # compute max or min
+               maxval = max(val)
+               maxdir = nearestNonMissing(day,'WindDirDegrees',val.index(maxval))
+               maxtime = day[val.index(maxval)]['DateUTC'].split(' ')[1]
+               dmspd.append(maxval)
+               dmdir.append(maxdir)
+               dmtime.append(maxtime)
      return dmspd, dmdir, dmtime
 
 ###############################################################
