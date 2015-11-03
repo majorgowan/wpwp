@@ -107,9 +107,8 @@ def contourPlotOnMap(lon, lat, data):
      import scipy.interpolate
 
      from mpl_toolkits.basemap import Basemap
-
+     # open new figure window
      plt.figure()
-
      # setup Lambert Conformal basemap.
      m = Basemap(width=1500000,height=1200000,projection='lcc',
             resolution='i',lat_1=45.,lat_0=43.6,lon_0=-82.)
@@ -119,26 +118,26 @@ def contourPlotOnMap(lon, lat, data):
      m.drawstates()
      # draw a boundary around the map, fill the background.
      # this background will end up being the ocean color, since
-     # the continents will be drawn on top.
+     # the continents/data will be drawn on top.
      m.drawmapboundary(fill_color='aqua')
-     # fill continents, set lake color same as ocean color.
-     # m.fillcontinents(color='wheat',lake_color='aqua')
      # convert data to arrays:
      x, y, z = np.array(lon), np.array(lat), np.array(data)
+     # map data points to projection coordinates
+     xmap, ymap = m(x,y)
      # Set up a regular grid of interpolation points
      xi, yi = np.linspace(x.min(), x.max(), 20), \
               np.linspace(y.min(), y.max(), 20)
+     # map regular lon-lat grid to projection coordinates
      xi, yi = m(*np.meshgrid(xi,yi))
-     #xi, yi = np.meshgrid(xi, yi)
-     # Interpolate
-     xmap, ymap = m(x,y)
+     # Interpolate data to projected regular grid (change linear ...)
      rbf = scipy.interpolate.Rbf(xmap, ymap, z, function='linear')
      zi = rbf(xi, yi)
-     # draw filled contours.
+     # draw filled contours
      cs = m.contourf(xi,yi,zi,10,cmap=plt.cm.jet)
-     m.scatter(xmap,ymap,c=z)  # plot a dot at real data points
+     # plot circles at original (projected) data points
+     m.scatter(xmap,ymap,c=z)  
      # add colorbar.
      cbar = m.colorbar(cs,location='bottom',pad="5%")
      cbar.set_label('data')
-     # add title
+     # display plot
      plt.show()
