@@ -106,45 +106,59 @@ def addWindVectors(data):
                     hour[u'xSpeed'] = unicode('%.2f' % xs)
                     hour[u'ySpeed'] = unicode('%.2f' % ys)
 
-def seconds(utc):
-     # convert a UTC string to seconds since midnight UTC
-     todString = utc.split(' ')[1]
-     tod = todString.split(':')
-     return 3600*int(tod[0]) + 60*int(tod[1]) + int(tod[2])
- 
+#
 def toSecondsValues(utc, y):
      # convert pairs of (UTC, value) to 
-     # (seconds since midnight UTC, value) removing missing values
-     secperday = 24*60*60
+     # (seconds since first value, value) removing missing values
+     import datetime
+     utcdatetime = [datetime.datetime.strptime(uu,"%Y-%m-%d %H:%M:%S") \
+                                                      for uu in utc]
      time = []
      val = []
      for ii in range(len(utc)):
           if not isMissing(y[ii]):
-               if len(time) == 0:
-                    time.append(seconds(utc[ii]))
-               else:
-                    time.append(time[0] \
-                        + (seconds(utc[ii])-time[0]) % secperday)
+               reftime = utcdatetime[ii]
+               start = ii
+               break
+     for ii in range(start,len(utc)):
+          if not isMissing(y[ii]):
+               time.append(float((utcdatetime[ii]-reftime).seconds))
                val.append(float(y[ii]))
      return time, val
 
 def trapezoid(utc, y):
-     secperday = 24*60*60
+     import numpy
      # do a time integral of y over UTC time using trapezoid method
      # neglecting missing values
      time, val = toSecondsValues(utc, y)
+     # print(zip(time,val))
+     dt = [time[i+1]-time[i] for i in range(len(val)-1)]
+     # print(zip(val,dt))
      integral = 0.0
-     for ii in range(1,len(val)):
-          integral += 0.5*(float(time[ii] - time[ii-1])) \
-                                       *(val[ii-1] + val[ii])
-     interval = float(time[-1]-time[0])
-     # if full day (first/last times the same), 
-     # set interval to secperday
-     if interval == 0: interval = secperday
+     for ii in range(len(val)-1):
+          integral += 0.5*dt[ii]*(val[ii] + val[ii+1])
+     interval = numpy.sum(dt)
+     return interval, integral
+
+def rectangle(utc, y):
+     import numpy
+     secperday = float(24*60*60)
+     # do a time integral of y over UTC time using forward rectangle method
+     # neglecting missing values
+     time, val = toSecondsValues(utc, y)
+     # print(zip(time,val))
+     # append secperday to beginning and end of time list:
+     time = time + [secperday]
+     dt = [time[i+1]-time[i] for i in range(len(val))]
+     # print(zip(val,dt))
+     integral = 0.0
+     for ii in range(len(val)):
+          integral += dt[ii]*val[ii]
+     interval = numpy.sum(dt)
      return interval, integral
      
 #
-def dailyMean(data, variable):
+def dailyMean(data, variable, method='rectangle'):
      dm = []
      # loop over days
      for index, day in enumerate(data):
@@ -159,14 +173,21 @@ def dailyMean(data, variable):
           else:
                times = []
                values = []
-               for hour in day:
-                    times.append(hour['DateUTC'])
-                    values.append(hour[variable])
-               # append first value of next day (if available)
-               if index < len(data)-1:
-                    times.append(data[index+1][0]['DateUTC'])
-                    values.append(data[index+1][0][variable])
-               interval, integral = trapezoid(times, values)
+               if method == 'trapezoid':
+                    for hour in day:
+                         times.append(hour['DateUTC'])
+                         values.append(hour[variable])
+                    # append first value of next day (if available)
+                    if index < len(data)-1:
+                         if not isMissing(data[index+1][0][variable]):
+                              times.append(data[index+1][0]['DateUTC'])
+                              values.append(data[index+1][0][variable])
+                    interval, integral = trapezoid(times, values)
+               elif method == 'rectangle':
+                    for hour in day:
+                         times.append(hour['DateUTC'])
+                         values.append(hour[variable])
+                    interval, integral = rectangle(times, values)
                dm.append(integral/interval)
      return dm
 #

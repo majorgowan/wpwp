@@ -20,8 +20,8 @@ def plotOnMap():
      # fill continents, set lake color same as ocean color.
      m.fillcontinents(color='wheat',lake_color='aqua')
      # plot city locations (Toronto, Montreal, Detroit)
-     cityName = ['CYYZ', 'CYUL', 'KDTW']
-     lon, lat = [-79.6306, -73.7408, -83.3533], [43.6767, 45.4706, 42.2125]
+     cityName = getStationList()
+     lon, lat = getStationLonLat(cityName)
 #     lon, lat = -79.6306, 43.6767 # Location of Boulder
      # convert to map projection coords.
      # Note that lon,lat can be scalars, lists or numpy arrays.
@@ -29,7 +29,7 @@ def plotOnMap():
      # convert back to lat/lon
      lonpt, latpt = m(xpt,ypt,inverse=True)
      m.plot(xpt,ypt,'bo')  # plot a blue dot there
-     for icity in range(3):
+     for icity in range(len(cityName)):
           plt.text(xpt[icity]+30000,ypt[icity]+20000,cityName[icity])
      plt.show()
      
@@ -107,9 +107,12 @@ def contourPlotOnMap(lon, lat, data):
      import scipy.interpolate
 
      from mpl_toolkits.basemap import Basemap
+
+     plt.figure()
+
      # setup Lambert Conformal basemap.
-     m = Basemap(width=3200000,height=2500000,projection='lcc',
-            resolution='i',lat_1=45.,lat_0=43.6,lon_0=-80.)
+     m = Basemap(width=1500000,height=1200000,projection='lcc',
+            resolution='i',lat_1=45.,lat_0=43.6,lon_0=-82.)
      # draw coastlines.
      m.drawcoastlines()
      m.drawcountries()
@@ -119,20 +122,23 @@ def contourPlotOnMap(lon, lat, data):
      # the continents will be drawn on top.
      m.drawmapboundary(fill_color='aqua')
      # fill continents, set lake color same as ocean color.
-     m.fillcontinents(color='wheat',lake_color='aqua')
+     # m.fillcontinents(color='wheat',lake_color='aqua')
      # convert data to arrays:
      x, y, z = np.array(lon), np.array(lat), np.array(data)
      # Set up a regular grid of interpolation points
      xi, yi = np.linspace(x.min(), x.max(), 20), \
               np.linspace(y.min(), y.max(), 20)
-     xi, yi = np.meshgrid(xi, yi)
+     xi, yi = m(*np.meshgrid(xi,yi))
+     #xi, yi = np.meshgrid(xi, yi)
      # Interpolate
-     rbf = scipy.interpolate.Rbf(x, y, z, function='linear')
+     xmap, ymap = m(x,y)
+     rbf = scipy.interpolate.Rbf(xmap, ymap, z, function='linear')
      zi = rbf(xi, yi)
      # draw filled contours.
-     cs = m.contourf(xi,yi,zi)
+     cs = m.contourf(xi,yi,zi,10,cmap=plt.cm.jet)
+     m.scatter(xmap,ymap,c=z)  # plot a dot at real data points
      # add colorbar.
      cbar = m.colorbar(cs,location='bottom',pad="5%")
-     cbar.set_label('mm')
+     cbar.set_label('data')
      # add title
      plt.show()
