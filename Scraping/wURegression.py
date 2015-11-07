@@ -2,6 +2,10 @@
 ################## REGRESSION MODELS ###########################
 ################################################################
 #
+###############################################################
+################## HELPER FUNCTIONS ###########################
+###############################################################
+#
 def loadDailyVariableRange(station, startDate, endDate, \
                            variable, castFloat=False):
      # generate a list of values for a specified variable from
@@ -332,6 +336,9 @@ def multiCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
           # load target variable data
           target = loadDailyVariableRange(stations[0], startDate, endDate, \
                              targetVar, castFloat=True)
+          # "baseline" model is predicted target same as value on prediction day
+          baseline = target[order:(-lag)]
+          baseline = np.array(baseline)
           # shift vector by lag
           target = target[lag:]
           target = np.array(target)
@@ -364,7 +371,12 @@ def multiCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
      featureData = (np.array(featureData)).T
      pred = regr.predict(featureData)
      if actual:
-          print("R^2: " + str(regr.score(featureData,target)))
+          print("R^2_mean:" + "\t" + str(regr.score(featureData,target)))
+          sse = ((pred-target)**2).sum()
+          ssm = ((baseline-target)**2).sum()
+          print("R^2_base:" + "\t" + str(1 - sse/ssm))
+          rmse = np.sqrt(((pred - target)**2).mean())
+          print("RMSE:\t" + "\t" + str(rmse))
      return date_list, pred, target
 
 ###############################################################
