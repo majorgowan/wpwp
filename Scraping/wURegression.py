@@ -131,7 +131,7 @@ def oneCityPredict(regr, model_params, startDate, endDate, actual=True):
 ###############################################################
 #
 def oneCityTaylorModel(station, startDate, endDate, \
-                     features, targetVar='TempMax', lag=1, order=1):
+                     features, targetVar='TempMax', lag=1, order=0):
      # build regression model to predict "variable" for a single
      # station using training data from only the same station 
      # between startdate and enddate
@@ -248,7 +248,7 @@ def oneCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
 ###############################################################
 #
 def multiCityTaylorModel(stations, startDate, endDate, \
-                     features, targetVar='TempMax', lag=1, order=1):
+                     features, targetVar='TempMax', lag=1, order=0):
      # build regression model to predict "variable" for a single
      # station using training data from multiple stations 
      # between startdate and enddate.  Uses a "Taylor expansion" 
