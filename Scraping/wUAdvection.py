@@ -69,7 +69,7 @@ def dDeriv(station1, station2, variable, startDate, endDate):
      lon, lat = getStationLonLat([station1, station2])
      # compute unit vector from station2 to station1
      uVec = unitVector(lon, lat)
-     print("unit vector: " + str(uVec))
+     # print("unit vector: " + str(uVec))
      # get mean wind vector at station2:
      windX2 = loadDailyVariableRange(station2, startDate, endDate, \
                         'WindMeanX', castFloat=True)
@@ -85,6 +85,6 @@ def dDeriv(station1, station2, variable, startDate, endDate):
      # project wind vector onto unit vector
      proj = np.dot(uVec, windVec)
      dD = (np.array(var1) - np.array(var2)) * proj
-     return dD
+     return dD, uVec
 
 

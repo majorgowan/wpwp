@@ -3,35 +3,6 @@
 ###############################################################
 #
 # ref: http://matplotlib.org/basemap/users/geography.html
-def plotOnMap():
-     from mpl_toolkits.basemap import Basemap
-     import matplotlib.pyplot as plt
-     # setup Lambert Conformal basemap.
-     m = Basemap(width=3200000,height=2500000,projection='lcc',
-            resolution='i',lat_1=45.,lat_0=43.6,lon_0=-80.)
-     # draw coastlines.
-     m.drawcoastlines()
-     m.drawcountries()
-     m.drawstates()
-     # draw a boundary around the map, fill the background.
-     # this background will end up being the ocean color, since
-     # the continents will be drawn on top.
-     m.drawmapboundary(fill_color='aqua')
-     # fill continents, set lake color same as ocean color.
-     m.fillcontinents(color='wheat',lake_color='aqua')
-     # plot city locations (Toronto, Montreal, Detroit)
-     cityName = getStationList()
-     lon, lat = getStationLonLat(cityName)
-#     lon, lat = -79.6306, 43.6767 # Location of Boulder
-     # convert to map projection coords.
-     # Note that lon,lat can be scalars, lists or numpy arrays.
-     xpt,ypt = m(lon,lat)
-     # convert back to lat/lon
-     lonpt, latpt = m(xpt,ypt,inverse=True)
-     m.plot(xpt,ypt,'bo')  # plot a blue dot there
-     for icity in range(len(cityName)):
-          plt.text(xpt[icity]+30000,ypt[icity]+20000,cityName[icity])
-     plt.show()
      
 ###############################################################
 ################# LOAD DATA FOR ALL CITIES ####################
@@ -75,6 +46,91 @@ def loadDailyVariable(stations, outdate, variable):
                          break
      return vals          
 
+###############################################################
+################# PLOT POINTS AND LABELS ON MAP ###############
+###############################################################
+#
+def plotOnMap():
+     from mpl_toolkits.basemap import Basemap
+     import matplotlib.pyplot as plt
+     # setup Lambert Conformal basemap.
+     m = Basemap(width=3200000,height=2500000,projection='lcc',
+            resolution='i',lat_1=45.,lat_0=43.6,lon_0=-80.)
+     # draw coastlines.
+     m.drawcoastlines()
+     m.drawcountries()
+     m.drawstates()
+     # draw a boundary around the map, fill the background.
+     # this background will end up being the ocean color, since
+     # the continents will be drawn on top.
+     m.drawmapboundary(fill_color='aqua')
+     # fill continents, set lake color same as ocean color.
+     m.fillcontinents(color='wheat',lake_color='aqua')
+     # plot city locations (Toronto, Montreal, Detroit)
+     cityName = getStationList()
+     lon, lat = getStationLonLat(cityName)
+#     lon, lat = -79.6306, 43.6767 # Location of Boulder
+     # convert to map projection coords.
+     # Note that lon,lat can be scalars, lists or numpy arrays.
+     xpt,ypt = m(lon,lat)
+     m.plot(xpt,ypt,'bo')  # plot a blue dot there
+     for icity in range(len(cityName)):
+          plt.text(xpt[icity]+30000,ypt[icity]+20000,cityName[icity])
+     plt.show()
+
+###############################################################
+################# ADVECTION ARROWS ON MAP #####################
+###############################################################
+#
+def nextDay(date):
+     # horrible hack to make advection plot need only one date
+     import datetime
+     day0 = datetime.datetime.strptime(date,"%Y-%m-%d") + datetime.timedelta(days=1)
+     return day0.date().isoformat()
+
+#
+def plotAdvectionOnMap(targetStation, variable, date):
+     from mpl_toolkits.basemap import Basemap
+     import matplotlib.pyplot as plt
+     import wUAdvection as Adv
+     # setup Lambert Conformal basemap.
+     m = Basemap(width=3200000,height=2500000,projection='lcc',
+            resolution='i',lat_1=45.,lat_0=43.6,lon_0=-80.)
+     # draw coastlines.
+     m.drawcoastlines()
+     m.drawcountries()
+     m.drawstates()
+     # draw a boundary around the map, fill the background.
+     # this background will end up being the ocean color, since
+     # the continents will be drawn on top.
+     m.drawmapboundary(fill_color='aqua')
+     # fill continents, set lake color same as ocean color.
+     m.fillcontinents(color='wheat',lake_color='aqua')
+     # get city locations (Toronto, Montreal, Detroit)
+     cityName = getStationList()
+     lon, lat = getStationLonLat(cityName)
+     # convert to map projection coords.
+     # Note that lon,lat can be scalars, lists or numpy arrays.
+     xpt,ypt = m(lon,lat)
+     m.plot(xpt,ypt,'bo')  # plot a blue dot there
+     # compute advection arrows between all other cities
+     # and the target city
+     for icity in range(len(cityName)):
+          if cityName[icity] != targetStation:
+               # print(targetStation, cityName[icity], variable, date, date)
+               dD, uVec = Adv.dDeriv(targetStation, cityName[icity], variable, \
+                       date, nextDay(date))
+               dD = 2000*dD[0]
+               dx, dy = dD*uVec
+               #print(cityName[icity], dD, uVec)
+               plt.arrow(xpt[icity],ypt[icity],dx,dy,color='r')
+     for icity in range(len(cityName)):
+          plt.text(xpt[icity]+30000,ypt[icity]+20000,cityName[icity])
+     plt.show()
+
+###############################################################
+################# CONTOUR PLOTS OF DATA ON MAP BACKGROUND #####
+###############################################################
 #
 def contourPlot(lon, lat, data):
      # based on http://stackoverflow.com/questions/9008370/python-2d-contour-plot-from-3-lists-x-y-and-rho
