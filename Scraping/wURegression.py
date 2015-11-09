@@ -248,7 +248,8 @@ def oneCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
 ###############################################################
 #
 def multiCityTaylorModel(stations, startDate, endDate, \
-                     features, targetVar='TempMax', lag=1, order=0):
+                     features, targetVar='TempMax', \
+                     lag=1, order=0, verbose=False):
      # build regression model to predict "variable" for a single
      # station using training data from multiple stations 
      # between startdate and enddate.  Uses a "Taylor expansion" 
@@ -305,16 +306,17 @@ def multiCityTaylorModel(stations, startDate, endDate, \
             'order': order}
      # report regression results:
      print("R^2: " + str(regr.score(featureData,target)))
-     print("Regression coefficients:")
-     print("  intercept" + ":\t" + str(regr.intercept_))
-     column = 0
-     for ideriv in range(order+1):
-          print("  " + str(ideriv) + "th derivative:")
-          for jj, station in enumerate(stations):
-               print("    Station: " + station)
-               for ii, feature in enumerate(features):
-                    print("       " + feature + ":\t" + str(regr.coef_[column]))
-                    column += 1
+     if verbose:
+          print("Regression coefficients:")
+          print("  intercept" + ":\t" + str(regr.intercept_))
+          column = 0
+          for ideriv in range(order+1):
+               print("  " + str(ideriv) + "th derivative:")
+               for jj, station in enumerate(stations):
+                    print("    Station: " + station)
+                    for ii, feature in enumerate(features):
+                         print("       " + feature + ":\t" + str(regr.coef_[column]))
+                         column += 1
      return featureData, target, regr, model_params
 
 #
@@ -384,7 +386,8 @@ def multiCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
 ###############################################################
 #
 def advectionTaylorModel(stations, startDate, endDate, \
-                     features, targetVar='TempMax', lag=1, order=0):
+                     features, targetVar='TempMax', \
+                     lag=1, order=0, verbose=False):
      # build regression model to predict "variable" for a single
      # station using training data from multiple stations 
      # between startdate and enddate.  Uses a "Taylor expansion" 
@@ -451,19 +454,20 @@ def advectionTaylorModel(stations, startDate, endDate, \
             'order': order}
      # report regression results:
      print("R^2: " + str(regr.score(featureData,target)))
-     print("Regression coefficients:")
-     print("  intercept" + ":\t" + str(regr.intercept_))
-     column = 0
-     for ideriv in range(order+1):
-          print("  " + str(ideriv) + "th derivative:")
-          for jj, station in enumerate(stations):
-               if jj > 0:
-                    print("    Station (Adv): " + station)
-               else:
-                    print("    Station: " + station)
-               for ii, feature in enumerate(features):
-                    print("       " + feature + ":\t" + str(regr.coef_[column]))
-                    column += 1
+     if verbose:
+          print("Regression coefficients:")
+          print("  intercept" + ":\t" + str(regr.intercept_))
+          column = 0
+          for ideriv in range(order+1):
+               print("  " + str(ideriv) + "th derivative:")
+               for jj, station in enumerate(stations):
+                    if jj > 0:
+                         print("    Station (Adv): " + station)
+                    else:
+                         print("    Station: " + station)
+                    for ii, feature in enumerate(features):
+                         print("       " + feature + ":\t" + str(regr.coef_[column]))
+                         column += 1
      return featureData, target, regr, model_params
 
 #
