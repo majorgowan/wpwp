@@ -380,6 +380,166 @@ def multiCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
      return date_list, pred, target
 
 ###############################################################
+################## ADVECTION MODEL ############################
+###############################################################
+#
+def advectionTaylorModel(stations, startDate, endDate, \
+                     features, targetVar='TempMax', lag=1, order=0):
+     # build regression model to predict "variable" for a single
+     # station using training data from multiple stations 
+     # between startdate and enddate.  Uses a "Taylor expansion" 
+     # by combining information from several days (higher order
+     # time derivatives)
+     #
+     # stations: a list of station codes, the first entry is
+     #             the station for which forecast is generated
+     # features: a list of variables to use as predictors
+     #      lag: the number of days in the future to forecast
+     #    order: the number of days in the past to include
+     #           (also maximum order of time derivative)
+     import numpy as np
+     import wUAdvection as Adv
+     from sklearn import linear_model
+     # load target variable data
+     target = loadDailyVariableRange(stations[0], startDate, endDate, \
+                        targetVar, castFloat=True)
+     # shift vector by lag
+     target = target[lag:]
+     # load feature data
+     featureData = []
+     # add data for target station
+     for feature in features:
+          fd = loadDailyVariableRange(stations[0], startDate, endDate, \
+                             feature, castFloat=True)
+          # shorten vector by lag
+          fd = fd[:(-lag)]
+          featureData.append(fd)
+     # for other stations, add the advection of each feature in the
+     # direction of the target station
+     for station in stations[1:]:
+          for feature in features:
+               # print("Adding " + feature + " from " + station)
+               fd, uVec = Adv.dDeriv(stations[0], station, \
+                                     feature, startDate, endDate)
+               # shorten vector by lag
+               fd = fd[:(-lag)]
+               featureData.append(fd)
+     # add in "derivative" terms
+     for ideriv in range(1,order+1):
+          ncols = len(stations)*len(features)
+          for ii in range(ncols):
+               # print("Adding " + str(ideriv) + " derivative of " + feature[jfeat])
+               fd = np.diff(featureData[ii],n=ideriv)
+               featureData.append(fd)
+     # shorten vectors to length of highest order derivative
+     nrows = len(featureData[-1])
+     for column in range(len(featureData)):
+          featureData[column] = featureData[column][-nrows:]
+     target = target[-nrows:]
+     # convert target and features to np arrays
+     target = np.array(target)
+     featureData = (np.array(featureData)).T
+     regr = linear_model.LinearRegression()
+     regr.fit(featureData, target)
+     model_params = {
+            'stations': stations, \
+            'startDate': startDate, \
+            'endDate': endDate, \
+            'targetVar': targetVar, \
+            'features': features, \
+            'lag': lag,
+            'order': order}
+     # report regression results:
+     print("R^2: " + str(regr.score(featureData,target)))
+     print("Regression coefficients:")
+     print("  intercept" + ":\t" + str(regr.intercept_))
+     column = 0
+     for ideriv in range(order+1):
+          print("  " + str(ideriv) + "th derivative:")
+          for jj, station in enumerate(stations):
+               if jj > 0:
+                    print("    Station (Adv): " + station)
+               else:
+                    print("    Station: " + station)
+               for ii, feature in enumerate(features):
+                    print("       " + feature + ":\t" + str(regr.coef_[column]))
+                    column += 1
+     return featureData, target, regr, model_params
+
+#
+def advectionTaylorPredict(regr, model_params, startDate, endDate, actual=True):
+     # predict targetVar for a single station using 
+     # previously generated regression model
+     import numpy as np
+     import wUAdvection as Adv
+     # extract city and feature data
+     stations = model_params['stations']
+     targetVar = model_params['targetVar']
+     features = model_params['features']
+     lag = model_params['lag']
+     order = model_params['order']
+     # build list of dates in datetime format
+     date_list = dateList(startDate, endDate)
+     date_list = date_list[(lag+order):]
+     # if actual data available
+     if actual:
+          # load target variable data
+          target = loadDailyVariableRange(stations[0], startDate, endDate, \
+                             targetVar, castFloat=True)
+          # "baseline" model is predicted target same as value on prediction day
+          baseline = target[order:(-lag)]
+          baseline = np.array(baseline)
+          # shift vector by lag
+          target = target[lag:]
+          target = np.array(target)
+     else:
+          target = None
+     # load feature data
+     featureData = []
+     # add data for target station
+     for feature in features:
+          fd = loadDailyVariableRange(stations[0], startDate, endDate, \
+                             feature, castFloat=True)
+          # shorten vector by lag
+          fd = fd[:(-lag)]
+          featureData.append(fd)
+     # for other stations, add the advection of each feature in the
+     # direction of the target station
+     for station in stations[1:]:
+          for feature in features:
+               # print("Adding " + feature + " from " + station)
+               fd, uVec = Adv.dDeriv(stations[0], station, \
+                                     feature, startDate, endDate)
+               # shorten vector by lag
+               fd = fd[:(-lag)]
+               featureData.append(fd)
+     # add in "derivative" terms
+     for ideriv in range(1,order+1):
+          ncols = len(stations)*len(features)
+          for ii in range(ncols):
+               # print("Adding " + str(ideriv) + " derivative of " + feature[jfeat])
+               fd = np.diff(featureData[ii],n=ideriv)
+               featureData.append(fd)
+     # shorten vectors to length of highest order derivative
+     nrows = len(featureData[-1])
+     for column in range(len(featureData)):
+          featureData[column] = featureData[column][-nrows:]
+     if actual:
+          target = target[-nrows:]
+     # convert target and features to np arrays
+     featureData = (np.array(featureData)).T
+     pred = regr.predict(featureData)
+     if actual:
+          print("R^2_mean:" + "\t" + str(regr.score(featureData,target)))
+          sse = ((pred-target)**2).sum()
+          ssm = ((baseline-target)**2).sum()
+          print("R^2_base:" + "\t" + str(1 - sse/ssm))
+          rmse = np.sqrt(((pred - target)**2).mean())
+          print("RMSE:\t" + "\t" + str(rmse))
+     return date_list, pred, target
+
+
+###############################################################
 ################## PLOT RESULTS ###############################
 ###############################################################
 #

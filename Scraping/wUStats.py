@@ -71,7 +71,7 @@ def collectAllStats():
 def getStationList():
      import glob
      stations = []
-     for infile in glob.glob('JSON_DATA/*'):
+     for infile in sorted(glob.glob('JSON_DATA/*')):
          stations.append(infile.split('\\')[1])
      return stations
 

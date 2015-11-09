@@ -190,6 +190,7 @@ def getJSON(station, year, month):
                 + station + '/' + station + '_' + str(year) + '_' \
                 + str('%02d' % month) + '.json'
      with open(filename, 'r') as infile:
+          # print(filename)
           data = json.load(infile)
      # make list of dates
      dates = []
@@ -216,7 +217,8 @@ def getJSONFolder(station):
      import os
      dates = []
      data = []
-     for infile in glob.glob(os.path.join('JSON_DATA\\' + station,'*.json')):
+     for infile in sorted( \
+            glob.glob(os.path.join('JSON_DATA\\' + station,'*.json')) ):
          station = infile.split('\\')[1]
          year = int(infile.split('\\')[2].split('_')[1])
          month = int(infile.split('\\')[2].split('_')[2].split('.')[0])
