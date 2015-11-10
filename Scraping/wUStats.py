@@ -83,7 +83,14 @@ def isMissing(valString):
      if (valString in ['N/A', '-9999', '']):
           return True
      else:
-          return False
+          # a few entries are very large numbers (corrupted no doubt)
+          try:
+               if abs(float(valString)) > 1.e5: 
+                    return True
+          except:
+               pass
+     # otherwise consider *not* missing
+     return False
 
 #
 def addWindVectors(data):

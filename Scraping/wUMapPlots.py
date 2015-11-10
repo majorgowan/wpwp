@@ -128,6 +128,42 @@ def plotAdvectionOnMap(targetStation, variable, date):
           plt.text(xpt[icity]+30000,ypt[icity]+20000,cityName[icity])
      plt.show()
 
+#
+def plotWindVectorsOnMap(date):
+     from mpl_toolkits.basemap import Basemap
+     import matplotlib.pyplot as plt
+     import wUAdvection as Adv
+     # setup Lambert Conformal basemap.
+     m = Basemap(width=3200000,height=2500000,projection='lcc',
+            resolution='i',lat_1=45.,lat_0=43.6,lon_0=-80.)
+     # draw coastlines.
+     m.drawcoastlines()
+     m.drawcountries()
+     m.drawstates()
+     # draw a boundary around the map, fill the background.
+     # this background will end up being the ocean color, since
+     # the continents will be drawn on top.
+     m.drawmapboundary(fill_color='aqua')
+     # fill continents, set lake color same as ocean color.
+     m.fillcontinents(color='wheat',lake_color='aqua')
+     # get city locations (Toronto, Montreal, Detroit)
+     cityName = getStationList()
+     lon, lat = getStationLonLat(cityName)
+     # convert to map projection coords.
+     # Note that lon,lat can be scalars, lists or numpy arrays.
+     xpt,ypt = m(lon,lat)
+     m.plot(xpt,ypt,'bo')  # plot a blue dot there
+     # compute wind vectors
+     windX = loadDailyVariable(cityName, date, 'WindMeanX')
+     windY = loadDailyVariable(cityName, date, 'WindMeanY')
+     for icity in range(len(cityName)):
+          stretch = 20000
+          dx, dy = stretch*windX[icity], stretch*windY[icity]
+          plt.arrow(xpt[icity],ypt[icity],dx,dy,color='r',width=8000,head_length=30000,head_width=20000)
+          plt.text(xpt[icity]+30000,ypt[icity]+20000,cityName[icity], size='large')
+     plt.show()
+
+
 ###############################################################
 ################# CONTOUR PLOTS OF DATA ON MAP BACKGROUND #####
 ###############################################################
