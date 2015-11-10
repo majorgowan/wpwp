@@ -10,6 +10,15 @@ def loadDailyVariableRange(station, startDate, endDate, \
                            variable, castFloat=False):
      # generate a list of values for a specified variable from
      # a specified station over a specified range of dates
+     #
+     # check if variable is a derived variable or a stored variable
+     import wUDerived as Deriv
+     reload(Deriv)
+     # if derived, will be a method in wUDerived module
+     if hasattr(Deriv, variable):
+          methodToCall = getattr(Deriv, variable)
+          return methodToCall(station, startDate, endDate)
+     # else should be stored in CSV file
      vals = []
      with open('CSV_DATA/' + station + '.csv','r') as infile:
           header = infile.readline().strip().split(', ')
@@ -379,7 +388,13 @@ def multiCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
           print("R^2_base:" + "\t" + str(1 - sse/ssm))
           rmse = np.sqrt(((pred - target)**2).mean())
           print("RMSE:\t" + "\t" + str(rmse))
-     return date_list, pred, target
+          model_perf = {
+               'R2_mean': regr.score(featureData,target), \
+               'R2_base': 1 - sse/ssm, \
+               'RMSE': rmse}
+     else:
+          model_perf = None
+     return date_list, pred, target, model_perf
 
 ###############################################################
 ################## ADVECTION MODEL ############################
@@ -394,14 +409,19 @@ def advectionTaylorModel(stations, startDate, endDate, \
      # by combining information from several days (higher order
      # time derivatives)
      #
+     # for each variable, at target station, use value, and
+     # at other stations, only the projection of its gradient 
+     # in the direction of the target station
+     # 
      # stations: a list of station codes, the first entry is
-     #             the station for which forecast is generated
+     #           the target station (for which forecast is generated)
      # features: a list of variables to use as predictors
      #      lag: the number of days in the future to forecast
      #    order: the number of days in the past to include
      #           (also maximum order of time derivative)
      import numpy as np
      import wUAdvection as Adv
+     reload(Adv)
      from sklearn import linear_model
      # load target variable data
      target = loadDailyVariableRange(stations[0], startDate, endDate, \
@@ -540,8 +560,42 @@ def advectionTaylorPredict(regr, model_params, startDate, endDate, actual=True):
           print("R^2_base:" + "\t" + str(1 - sse/ssm))
           rmse = np.sqrt(((pred - target)**2).mean())
           print("RMSE:\t" + "\t" + str(rmse))
-     return date_list, pred, target
-
+          model_perf = {
+                    'R2_mean': regr.score(featureData,target), \
+                    'R2_base': 1 - sse/ssm, \
+                    'RMSE': rmse}
+     else:
+          model_perf = None
+     return date_list, pred, target, model_perf
+     
+###############################################################
+################## STATION INTERCOMPARISON ####################
+###############################################################
+#
+def compareStations(stations, \
+                    startTrain, endTrain, startTest, endTest, \
+                    features, targetVar='TempMax', \
+                    lag=1, order=0):
+     # list of performance measures on test set
+     perfList = []
+     for targetStation in stations:
+          # move targetStation to first in list of stations
+          otherStations = [s for s in stations if s != targetStation]
+          sortedStations = [targetStation] + otherStations
+          # train model
+          featureData, target, regr, model_params = \
+               multiCityTaylorModel(sortedStations, \
+                                    startTrain, endTrain, \
+                                    features, targetVar, \
+                                    lag, order, verbose = False)
+          # test model
+          date_list, pred, target, model_perf = \
+               multiCityTaylorPredict(regr, model_params, \
+                                      startTest, endTest, \
+                                      actual = True)
+          model_perf['station'] = targetStation
+          perfList.append(model_perf)
+     return perfList
 
 ###############################################################
 ################## PLOT RESULTS ###############################
@@ -563,4 +617,26 @@ def plotModelPred(date_list, pred, target):
      plt.show()
      return ax
      
+#
+def extractCoeffs(regr, model_params, exFeature, exOrder):
+     # given regression model regr, extract coefficients
+     # for all stations for the given feature and order
+     # (e.g. for plotting)
+     stations = model_params['stations']
+     features = model_params['features']
+     order = model_params['order']
+     # check order and feature
+     if exFeature not in features:
+          print('Feature not found!')
+          return -1
+     if exOrder > order:
+          print('Order out of range!')
+          return -2
+     # extract the relevant coefficients from regr
+     featureIndex = features.index(exFeature)
+     startindex = exOrder*len(stations)*len(features)+featureIndex
+     endindex = (exOrder+1)*len(stations)*len(features)
+     return (regr.coef_[startindex:endindex:len(features)]).tolist()
+
+
      

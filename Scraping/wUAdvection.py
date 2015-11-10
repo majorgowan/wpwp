@@ -12,6 +12,15 @@ def loadDailyVariableRange(station, startDate, endDate, \
                            variable, castFloat=False):
      # generate a list of values for a specified variable from
      # a specified station over a specified range of dates
+     #
+     # check if variable is a derived variable or a stored variable
+     import wUDerived as Deriv
+     reload(Deriv)
+     # if derived, will be a method in wUDerived module
+     if hasattr(Deriv, variable):
+          methodToCall = getattr(Deriv, variable)
+          return methodToCall(station, startDate, endDate)
+     # else should be stored in CSV file
      vals = []
      with open('CSV_DATA/' + station + '.csv','r') as infile:
           header = infile.readline().strip().split(', ')

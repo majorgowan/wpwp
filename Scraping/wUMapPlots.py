@@ -132,7 +132,6 @@ def plotAdvectionOnMap(targetStation, variable, date):
 def plotWindVectorsOnMap(date):
      from mpl_toolkits.basemap import Basemap
      import matplotlib.pyplot as plt
-     import wUAdvection as Adv
      # setup Lambert Conformal basemap.
      m = Basemap(width=3200000,height=2500000,projection='lcc',
             resolution='i',lat_1=45.,lat_0=43.6,lon_0=-80.)
@@ -202,7 +201,7 @@ def contourPlotOnMap(lon, lat, data):
      # open new figure window
      plt.figure()
      # setup Lambert Conformal basemap.
-     m = Basemap(width=1500000,height=1200000,projection='lcc',
+     m = Basemap(width=1900000,height=1600000,projection='lcc',
             resolution='i',lat_1=45.,lat_0=43.6,lon_0=-82.)
      # draw coastlines.
      m.drawcoastlines()
@@ -217,15 +216,15 @@ def contourPlotOnMap(lon, lat, data):
      # map data points to projection coordinates
      xmap, ymap = m(x,y)
      # Set up a regular grid of interpolation points
-     xi, yi = np.linspace(x.min(), x.max(), 20), \
-              np.linspace(y.min(), y.max(), 20)
+     xi, yi = np.linspace(x.min(), x.max(), 30), \
+              np.linspace(y.min(), y.max(), 30)
      # map regular lon-lat grid to projection coordinates
      xi, yi = m(*np.meshgrid(xi,yi))
      # Interpolate data to projected regular grid (change linear ...)
      rbf = scipy.interpolate.Rbf(xmap, ymap, z, function='linear')
      zi = rbf(xi, yi)
      # draw filled contours
-     cs = m.contourf(xi,yi,zi,10,cmap=plt.cm.jet)
+     cs = m.contourf(xi,yi,zi,20,cmap=plt.cm.jet)
      # plot circles at original (projected) data points
      m.scatter(xmap,ymap,c=z)  
      # add colorbar.
@@ -233,6 +232,11 @@ def contourPlotOnMap(lon, lat, data):
      cbar.set_label('data')
      # display plot
      plt.show()
+
+#
+def contourPlotStationsOnMap(stations, data):
+     lon, lat = getStationLonLat(stations)
+     contourPlotOnMap(lon, lat, data)
 
 #
 def contourPlotVarOnMap(variable, date, npts = 20, ncntrs = 10):

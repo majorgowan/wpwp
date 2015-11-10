@@ -76,7 +76,7 @@ def getStationList():
      return stations
 
 ###############################################################
-###################### DERIVED STATS ##########################
+###################### AGGREGATE STATS ########################
 ###############################################################
 #
 def isMissing(valString):
@@ -253,7 +253,7 @@ def dailyMax(data, variable, minmax=1):
                     maxval = max(val)
                elif minmax == -1:
                     maxval = min(val)
-               maxtime = day[val.index(maxval)]['DateUTC'].split(' ')[1]
+               maxtime = day[val.index(maxval)]['DateUTC']
                dm.append(maxval)
                dmpos.append(maxtime)
      return dm, dmpos
@@ -315,54 +315,9 @@ def dailyMaxWind(data):
                # compute max or min
                maxval = max(val)
                maxdir = nearestNonMissing(day,'WindDirDegrees',val.index(maxval))
-               maxtime = day[val.index(maxval)]['DateUTC'].split(' ')[1]
+               maxtime = day[val.index(maxval)]['DateUTC']
                dmspd.append(maxval)
                dmdir.append(maxdir)
                dmtime.append(maxtime)
      return dmspd, dmdir, dmtime
-
-###############################################################
-###################### INTERACTIVE EXAMPLE ####################
-###############################################################
-#
-'''
-'''
-
-###############################################################
-###################### MAIN DATA RETRIEVAL ROUTINE ############
-###############################################################
-#------------- airport codes
-# Halifax:       CYHZ
-# Ottawa:        CYOW
-# Montreal:      CYUL
-# Toronto:       CYYZ
-# Sudbury:       CYSB
-# Thunder Bay:   CYQT
-# Winnipeg:      CYWG
-# Calgary:       CYYC
-# Vancouver:     CYVR
-# --
-# Buffalo:       KBUF
-# Chicago:       KORD
-# Detroit: 	 KDTW
-# Cleveland:	 KCLE
-# Cincinnati:	 KCVG
-# Pittsburgh:	 KPIT
-# New York:	 KJFK
-# Boston:	 KBOS
-# Nashville:	 KBNA
-# Memphis:	 KMEM
-# Indianapolis:	 KIND
-# Philadelphia:	 KPHL
-# St. Louis:	 KSTL
-# Milwaukee:	 KMKE
-# Minneapolis:	 KMSP
-# Charlotte:	 KCLT
-# Washington:	 KIAD
-# Des Moines:	 KDSM
-# Kansas City:	 KMCI
-# Dallas:	 KDFW
-# Oklahoma City: KOKC
-# --
-# Frankfurt:     EDDF
 
