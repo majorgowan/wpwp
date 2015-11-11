@@ -80,7 +80,7 @@ def getStationList():
 ###############################################################
 #
 def isMissing(valString):
-     if (valString in ['N/A', '-9999', '']):
+     if (valString in ['N/A', '-9999', '-9999.0', '']):
           return True
      else:
           # a few entries are very large numbers (corrupted no doubt)
@@ -129,7 +129,7 @@ def toSecondsValues(utc, y):
                break
      for ii in range(start,len(utc)):
           if not isMissing(y[ii]):
-               time.append(float((utcdatetime[ii]-reftime).seconds))
+               time.append(float((utcdatetime[ii]-reftime).total_seconds()))
                val.append(float(y[ii]))
      return time, val
 
