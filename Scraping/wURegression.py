@@ -114,7 +114,12 @@ def oneCityPredict(regr, model_params, startDate, endDate, actual=True):
           # load target variable data
           target = loadDailyVariableRange(station, startDate, endDate, \
                              targetVar, castFloat=True)
-          # shift vector by lag
+
+          # "baseline" model is predicted target same as value on prediction day
+          baseline = target[:(-lag)]
+          baseline = np.array(baseline)
+          
+	  # shift vector by lag
           target = target[lag:]
           target = np.array(target)
      else:
@@ -132,7 +137,18 @@ def oneCityPredict(regr, model_params, startDate, endDate, actual=True):
      featureData = (np.array(featureData)).T
      pred = regr.predict(featureData)
      if actual:
-          print("R^2: " + str(regr.score(featureData,target)))
+          print("R^2_mean:" + "\t" + str(regr.score(featureData,target)))
+          sse = ((pred-target)**2).sum()
+          ssm = ((baseline-target)**2).sum()
+          print("R^2_base:" + "\t" + str(1 - sse/ssm))
+          rmse = np.sqrt(((pred - target)**2).mean())
+          rmse_base = np.sqrt(((baseline - target)**2).mean())
+          print("RMSE:\t" + "\t" + str(rmse))
+          print("RMSE_base:\t" + str(rmse_base))
+          model_perf = {
+               'R2_mean': regr.score(featureData,target), \
+               'R2_base': 1 - sse/ssm, \
+               'RMSE': rmse}
      return date_list, pred, target
 
 ###############################################################
@@ -601,19 +617,31 @@ def compareStations(stations, \
 ################## PLOT RESULTS ###############################
 ###############################################################
 #
-def plotModelPred(date_list, pred, target):
+def plotModelPred(date_list, pred, target, startIndex=0, endIndex=0):
      # plot a prediction and the actual values versus date
      import matplotlib.pyplot as plt
+     fig = plt.figure()
+     # bounds:
+     sI = startIndex
+     if endIndex == 0:
+          eI = len(date_list)
+     else:
+          eI = endIndex
      # create new figure
      fig = plt.figure()
      ax = fig.add_subplot(111)
      # line and scatter plot of true values
-     plt.plot(date_list, target, color='black')
-     tp = plt.scatter(date_list, target, color='black')
+     plt.plot(date_list[sI:eI], \
+              target[sI:eI], color='black')
+     tp = plt.scatter(date_list[sI:eI], \
+		      target[sI:eI], color='black')
      # line and scatter plot of predictions
-     plt.plot(date_list, pred, color='red')
-     pp = plt.scatter(date_list, pred, color='red')
+     plt.plot(date_list[sI:eI], \
+	      pred[sI:eI], color='red')
+     pp = plt.scatter(date_list[sI:eI], \
+		      pred[sI:eI], color='red')
      plt.legend((tp, pp),('Truth','Predicted'))
+     fig.autofmt_xdate()
      plt.show()
      return ax
      

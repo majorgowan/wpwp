@@ -107,9 +107,9 @@ def addWindVectors(data):
                     hour[u'ySpeed'] = u'0.0'
                else:
                     xs = - float(hour['Wind SpeedKm/h']) * \
-                         math.cos(radperdeg*float(hour['WindDirDegrees']))
-                    ys = - float(hour['Wind SpeedKm/h']) * \
                          math.sin(radperdeg*float(hour['WindDirDegrees']))
+                    ys = - float(hour['Wind SpeedKm/h']) * \
+                         math.cos(radperdeg*float(hour['WindDirDegrees']))
                     hour[u'xSpeed'] = unicode('%.2f' % xs)
                     hour[u'ySpeed'] = unicode('%.2f' % ys)
 
