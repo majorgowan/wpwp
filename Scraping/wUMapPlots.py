@@ -201,7 +201,7 @@ def contourPlotOnMap(lon, lat, data):
      # open new figure window
      plt.figure()
      # setup Lambert Conformal basemap.
-     m = Basemap(width=1900000,height=1600000,projection='lcc',
+     m = Basemap(width=1700000,height=1400000,projection='lcc',
             resolution='i',lat_1=45.,lat_0=43.6,lon_0=-82.)
      # draw coastlines.
      m.drawcoastlines()
