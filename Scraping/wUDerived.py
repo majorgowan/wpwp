@@ -48,7 +48,7 @@ def dailyTempRange(station, startDate, endDate):
                           > datetime.timedelta(0)) - 1 \
                                     for i in range(len(maxTime))]
      # calculate return value                                        
-     vals = [int(plusminus[i]*(maximum[i]-minimum[i])) \
+     vals = [float(plusminus[i]*(maximum[i]-minimum[i])) \
                                     for i in range(len(plusminus))]
      return vals
 
@@ -70,7 +70,7 @@ def dailyPressRange(station, startDate, endDate):
                           > datetime.timedelta(0)) - 1 \
                                     for i in range(len(maxTime))]
      # calculate return value
-     vals = [int(plusminus[i]*(maximum[i]-minimum[i])) \
+     vals = [float(plusminus[i]*(maximum[i]-minimum[i])) \
                                     for i in range(len(plusminus))]
      return vals
 
