@@ -52,30 +52,59 @@ def pcaConvert(stations, features, startDate, endDate, ncomp=None):
      pcas = []
      pcaData = []
      for feature in features:
-	  data = []
-	  for station in stations:
+          data = []
+          for station in stations:
                vals = Reg.loadDailyVariableRange( \
-	                         station, startDate, endDate, \
-                                 feature, castFloat=True)
-	       data.append(vals)
-	  # convert data to a numpy array with features as columns
-	  data = np.array(data).T
-	  # compute pca transform and standardization transform
+                             station, startDate, endDate, \
+                             feature, castFloat=True)
+               data.append(vals)
+          # convert data to a numpy array with features as columns
+          data = np.array(data).T
+          # compute pca transform and standardization transform
           pc, scaler = pcaComp(data)
-	  # transform data to standardized pca space
+          # transform data to standardized pca space
           pcaData1 = pcaTransform(pc, scaler, data)
-	  # convert to a list of principal components
-	  pcaData1 = (pcaData1.T).tolist()
+          # convert to a list of principal components
+          pcaData1 = (pcaData1.T).tolist()
 
-	  # add transforms and principal components to corresponding lists
+          # add transforms and principal components to corresponding lists
           scalers.append(scaler)
           pcas.append(pc)
           pcaData.append(pcaData1)
 
      transform_params = { \
-          'features': features,
-	  'stations': stations,
-	  'ncomp': ncomp,
-	  'scalers': scalers,
-	  'pcas': pcas }
+          'features': features, \
+          'stations': stations, \
+          'ncomp': ncomp, \
+          'scalers': scalers, \
+          'pcas': pcas }
      return pcaData, transform_params
+
+#
+def pcaPredict(transform_params, startDate, endDate):
+     # apply pca and scaling transform constructed on a training
+     # set to an out-of-sample (or in-sample!) set
+     import numpy as np
+     import wURegression as Reg
+     stations = transform_params['stations']
+     features = transform_params['features']
+     scalers = transform_params['scalers']
+     pcas = transform_params['pcas']
+
+     pcaData = []
+     for feature in features:
+          data = []
+          for station in stations:
+               vals = Reg.loadDailyVariableRange( \
+                             station, startDate, endDate, \
+                             feature, castFloat=True)
+               data.append(vals)
+          # convert data to a numpy array with features as columns
+          data = np.array(data).T
+          # transform data to standardized pca space
+          pcaData1 = pcaTransform(pc, scaler, data)
+          # convert to a list of principal components
+          pcaData1 = (pcaData1.T).tolist()
+          # add pc data to list
+          pcaData.append(pcaData1)
+     return pcaData
