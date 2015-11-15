@@ -55,7 +55,6 @@ def loadDailyVariableRange(station, startDate, endDate, \
      #
      # check if variable is a derived variable or a stored variable
      import wUDerived as Deriv
-     reload(Deriv)
      # if derived, will be a method in wUDerived module
      if hasattr(Deriv, variable):
           methodToCall = getattr(Deriv, variable)

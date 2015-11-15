@@ -40,6 +40,19 @@ def loadDailyVariableRange(station, startDate, endDate, \
                     break
      return vals
 
+def smooth(data, window=3):
+     # a simple running mean "boxcar filter"; window is an odd integer
+     import numpy as np
+     shift = window / 2  # integer division
+     last = len(data)-1
+     newdata = []
+     for ii in range(len(data)):
+         start = max(0,ii-shift)
+         end = min(last,ii+shift)
+         val = np.mean(data[start:(end+1)])
+         newdata.append(val) 
+     return newdata
+
 def dateList(startDate, endDate):
      # generate list of datetime objects for a range of dates
      # (mostly for plotting purposes)
@@ -55,12 +68,13 @@ def dateList(startDate, endDate):
 ###############################################################
 #
 def oneCityModel(station, startDate, endDate, \
-                 features, targetVar='TempMax', lag=1):
+                 features, targetVar='TempMax', lag=1, scale=False):
      # build regression model to predict "variable" for a single
      # station using training data from only the same station 
      # between startdate and enddate
      # features is a list of variables to use as predictors
      import numpy as np
+     from sklearn import preprocessing
      from sklearn import linear_model
      # load target variable data
      target = loadDailyVariableRange(station, startDate, endDate, \
@@ -79,6 +93,11 @@ def oneCityModel(station, startDate, endDate, \
      # convert target and features to np arrays
      target = np.array(target)
      featureData = (np.array(featureData)).T
+     # rescale features
+     scaler = None
+     if scale:
+          scaler = preprocessing.StandardScaler().fit(featureData)
+          featureData = scaler.transform(featureData)          
      regr = linear_model.LinearRegression()
      regr.fit(featureData, target)
      model_params = {
@@ -87,17 +106,26 @@ def oneCityModel(station, startDate, endDate, \
             'endDate': endDate, \
             'targetVar': targetVar, \
             'features': features, \
-            'lag': lag }
+            'regr': regr, \
+            'lag': lag, \
+            'scale': scale, \
+            'scaler': scaler}
      # report regression results:
      print("R^2: " + str(regr.score(featureData,target)))
-     print("Regression coefficients:")
-     print("  intercept" + ":\t" + str(regr.intercept_))
-     for ii, feature in enumerate(features):
-          print("  " + feature + ":\t" + str(regr.coef_[ii]))         
-     return featureData, target, regr, model_params
+     if scale:
+          print("Regression coefficients (scaled, sorted):")
+          print("  intercept" + ":\t" + str(regr.intercept_))
+          for ii in np.argsort(-np.abs(regr.coef_)):
+               print("  " + features[ii] + ":\t" + str(regr.coef_[ii]))         
+     else:
+          print("Regression coefficients:")
+          print("  intercept" + ":\t" + str(regr.intercept_))
+          for ii in range(len(regr.coef_)):
+               print("  " + features[ii] + ":\t" + str(regr.coef_[ii]))         
+     return featureData, target, model_params
 
 #
-def oneCityPredict(regr, model_params, startDate, endDate, actual=True):
+def oneCityPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
@@ -106,6 +134,10 @@ def oneCityPredict(regr, model_params, startDate, endDate, actual=True):
      targetVar = model_params['targetVar']
      features = model_params['features']
      lag = model_params['lag']
+     regr = model_params['regr']
+     scale = model_params['scale']
+     if scale:
+          scaler = model_params['scaler']
      # build list of dates in datetime format
      date_list = dateList(startDate, endDate)
      date_list = date_list[lag:]
@@ -135,6 +167,8 @@ def oneCityPredict(regr, model_params, startDate, endDate, actual=True):
           featureData.append(fd)
      # convert target and features to np arrays
      featureData = (np.array(featureData)).T
+     if scale:
+          featureData = scaler.transform(featureData)
      pred = regr.predict(featureData)
      if actual:
           print("R^2_mean:" + "\t" + str(regr.score(featureData,target)))
@@ -156,7 +190,7 @@ def oneCityPredict(regr, model_params, startDate, endDate, actual=True):
 ###############################################################
 #
 def oneCityTaylorModel(station, startDate, endDate, \
-                     features, targetVar='TempMax', lag=1, order=0):
+                       features, targetVar='TempMax', lag=1, order=0, scale=False):
      # build regression model to predict "variable" for a single
      # station using training data from only the same station 
      # between startdate and enddate
@@ -164,6 +198,7 @@ def oneCityTaylorModel(station, startDate, endDate, \
      # use a "Taylor expansion" by combining information from
      # order is the maximum order of derivative to use
      import numpy as np
+     from sklearn import preprocessing
      from sklearn import linear_model
      # load target variable data
      target = loadDailyVariableRange(station, startDate, endDate, \
@@ -194,6 +229,11 @@ def oneCityTaylorModel(station, startDate, endDate, \
      # convert target and features to np arrays
      target = np.array(target)
      featureData = (np.array(featureData)).T
+     # rescale features
+     scaler = None
+     if scale:
+          scaler = preprocessing.StandardScaler().fit(featureData)
+          featureData = scaler.transform(featureData)          
      regr = linear_model.LinearRegression()
      regr.fit(featureData, target)
      model_params = {
@@ -202,21 +242,33 @@ def oneCityTaylorModel(station, startDate, endDate, \
             'endDate': endDate, \
             'targetVar': targetVar, \
             'features': features, \
-            'lag': lag,
-            'order': order}
+            'regr': regr, \
+            'lag': lag, \
+            'order': order, \
+            'scale': scale, \
+            'scaler': scaler}
      # report regression results:
      print("R^2: " + str(regr.score(featureData,target)))
-     print("Regression coefficients:")
-     print("  intercept" + ":\t" + str(regr.intercept_))
-     for ideriv in range(order+1):
-          print("  " + str(ideriv) + "th derivative:")
-          for ii, feature in enumerate(features):
-               column = len(features)*ideriv + ii
-               print("    " + feature + ":\t" + str(regr.coef_[column]))
-     return featureData, target, regr, model_params
+     if scale:
+          print("Regression coefficients (scaled, sorted):")
+          print("  intercept" + ":\t" + str(regr.intercept_))
+          for ii in np.argsort(-np.abs(regr.coef_)):
+               ideriv = ii / len(features)
+               ifeat = ii - len(features)*ideriv
+               print("  " + str(ideriv) + 'th deriv of ' \
+                       + features[ifeat] + ":\t" + str(regr.coef_[ii]))         
+     else:
+          print("Regression coefficients:")
+          print("  intercept" + ":\t" + str(regr.intercept_))
+          for ideriv in range(order+1):
+               print("  " + str(ideriv) + "th derivative:")
+               for ii, feature in enumerate(features):
+                    column = len(features)*ideriv + ii
+                    print("    " + feature + ":\t" + str(regr.coef_[column]))
+     return featureData, target, model_params
 
 #
-def oneCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
+def oneCityTaylorPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
@@ -224,8 +276,12 @@ def oneCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
      station = model_params['station']
      targetVar = model_params['targetVar']
      features = model_params['features']
+     regr = model_params['regr']
      lag = model_params['lag']
      order = model_params['order']
+     scale = model_params['scale']
+     if scale:
+          scaler = model_params['scaler']
      # build list of dates in datetime format
      date_list = dateList(startDate, endDate)
      date_list = date_list[(lag+order):]
@@ -267,6 +323,8 @@ def oneCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
           target = target[-nrows:]
      # convert target and features to np arrays
      featureData = (np.array(featureData)).T
+     if scale:
+          featureData = scaler.transform(featureData)
      pred = regr.predict(featureData)
      if actual:
           print("R^2_mean:" + "\t" + str(regr.score(featureData,target)))
@@ -290,7 +348,7 @@ def oneCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
 #
 def multiCityTaylorModel(stations, startDate, endDate, \
                      features, targetVar='TempMax', \
-                     lag=1, order=0, verbose=False):
+                     lag=1, order=0, verbose=False, scale=False):
      # build regression model to predict "variable" for a single
      # station using training data from multiple stations 
      # between startdate and enddate.  Uses a "Taylor expansion" 
@@ -304,6 +362,7 @@ def multiCityTaylorModel(stations, startDate, endDate, \
      #    order: the number of days in the past to include
      #           (also maximum order of time derivative)
      import numpy as np
+     from sklearn import preprocessing
      from sklearn import linear_model
      # load target variable data
      target = loadDailyVariableRange(stations[0], startDate, endDate, \
@@ -335,6 +394,12 @@ def multiCityTaylorModel(stations, startDate, endDate, \
      # convert target and features to np arrays
      target = np.array(target)
      featureData = (np.array(featureData)).T
+     # rescale features
+     scaler = None
+     if scale:
+          scaler = preprocessing.StandardScaler().fit(featureData)
+          featureData = scaler.transform(featureData)          
+     # fit regression model
      regr = linear_model.LinearRegression()
      regr.fit(featureData, target)
      model_params = {
@@ -343,8 +408,11 @@ def multiCityTaylorModel(stations, startDate, endDate, \
             'endDate': endDate, \
             'targetVar': targetVar, \
             'features': features, \
-            'lag': lag,
-            'order': order}
+            'regr': regr, \
+            'lag': lag, \
+            'order': order, \
+            'scale': scale, \
+            'scaler': scaler}
      # report regression results:
      print("R^2: " + str(regr.score(featureData,target)))
      if verbose:
@@ -358,10 +426,10 @@ def multiCityTaylorModel(stations, startDate, endDate, \
                     for ii, feature in enumerate(features):
                          print("       " + feature + ":\t" + str(regr.coef_[column]))
                          column += 1
-     return featureData, target, regr, model_params
+     return featureData, target, model_params
 
 #
-def multiCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
+def multiCityTaylorPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
@@ -369,8 +437,12 @@ def multiCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
      stations = model_params['stations']
      targetVar = model_params['targetVar']
      features = model_params['features']
+     regr = model_params['regr']
      lag = model_params['lag']
      order = model_params['order']
+     scale = model_params['scale']
+     if scale:
+          scaler = model_params['scaler']
      # build list of dates in datetime format
      date_list = dateList(startDate, endDate)
      date_list = date_list[(lag+order):]
@@ -412,6 +484,8 @@ def multiCityTaylorPredict(regr, model_params, startDate, endDate, actual=True):
           target = target[-nrows:]
      # convert target and features to np arrays
      featureData = (np.array(featureData)).T
+     if scale:
+          featureData = scaler.transform(featureData)
      pred = regr.predict(featureData)
      if actual:
           print("R^2_mean:" + "\t" + str(regr.score(featureData,target)))
@@ -502,7 +576,8 @@ def advectionTaylorModel(stations, startDate, endDate, \
             'endDate': endDate, \
             'targetVar': targetVar, \
             'features': features, \
-            'lag': lag,
+            'regr': regr, \
+            'lag': lag, \
             'order': order}
      # report regression results:
      print("R^2: " + str(regr.score(featureData,target)))
@@ -520,10 +595,10 @@ def advectionTaylorModel(stations, startDate, endDate, \
                     for ii, feature in enumerate(features):
                          print("       " + feature + ":\t" + str(regr.coef_[column]))
                          column += 1
-     return featureData, target, regr, model_params
+     return featureData, target, model_params
 
 #
-def advectionTaylorPredict(regr, model_params, startDate, endDate, actual=True):
+def advectionTaylorPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
@@ -532,6 +607,7 @@ def advectionTaylorPredict(regr, model_params, startDate, endDate, actual=True):
      stations = model_params['stations']
      targetVar = model_params['targetVar']
      features = model_params['features']
+     regr = model_params['regr']
      lag = model_params['lag']
      order = model_params['order']
      # build list of dates in datetime format
@@ -615,14 +691,14 @@ def compareStations(stations, \
           otherStations = [s for s in stations if s != targetStation]
           sortedStations = [targetStation] + otherStations
           # train model
-          featureData, target, regr, model_params = \
+          featureData, target, model_params = \
                multiCityTaylorModel(sortedStations, \
                                     startTrain, endTrain, \
                                     features, targetVar, \
                                     lag, order, verbose = False)
           # test model
           date_list, pred, target, model_perf = \
-               multiCityTaylorPredict(regr, model_params, \
+               multiCityTaylorPredict(model_params, \
                                       startTest, endTest, \
                                       actual = True)
           model_perf['station'] = targetStation

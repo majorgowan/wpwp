@@ -2,13 +2,16 @@
 ###################### COLLECT DAILY STATS ####################
 ###############################################################
 #
-def collectAllStats():
+def collectAllStats(stationList = None):
      import wUnderground as wU
      import os
      if not os.path.exists('CSV_DATA'):
          os.mkdir('CSV_DATA')
      #stations = ['CYYZ', 'CYUL']
-     stations = getStationList()
+     if stationList == None:
+          stations = getStationList()
+     else:
+          stations = stationList
      for station in stations:
           print('Processing ' + station)
           # open file for csv output
@@ -80,12 +83,15 @@ def getStationList():
 ###############################################################
 #
 def isMissing(valString):
-     if (valString in ['N/A', '-9999', '-9999.0', '']):
+     if (valString in ['N/A', '-9999', '-9999.0', '101.6', '']):
+          if (valString == '101.6'):
+              print('101.6!!! It must be Cleveland!')
           return True
      else:
-          # a few entries are very large numbers (corrupted no doubt)
+          # a few entries are very large numbers (corrupted or typos no doubt)
           try:
-               if abs(float(valString)) > 1.e5: 
+               if abs(float(valString)) > 1500.: 
+                    print("TOO TOO BIG!!! " + valString)
                     return True
           except:
                pass

@@ -79,14 +79,14 @@ def isWesterly(station, startDate, endDate):
      # binary variable for max wind (0 = easterly, 1 = westerly)
      windDir = loadDailyVariableRange(station, startDate, endDate, \
                            'WindMaxDir', castFloat=True)
-     return [int(w > 90.0 and w < 270.0) for w in windDir]
+     return [int(w > 180.0 and w < 360.0) for w in windDir]
 
 #
-def isNortherly(station, startDate, endDate):
-     # binary variable for max wind (0 = southerly, 1 = northerly)
+def isSoutherly(station, startDate, endDate):
+     # binary variable for max wind (0 = northerly, 1 = southerly)
      windDir = loadDailyVariableRange(station, startDate, endDate, \
                            'WindMaxDir', castFloat=True)
-     return [int(w > 0.0 and w < 180.0) for w in windDir]
+     return [int(w > 90.0 and w < 270.0) for w in windDir]
      
 #
 def windQuadrant(station, startDate, endDate):
