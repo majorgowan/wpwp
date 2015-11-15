@@ -281,12 +281,15 @@ def contourPlotOnMap(lon, lat, data, title='data', \
      import scipy.interpolate
 
      from mpl_toolkits.basemap import Basemap
+
+     # compute centre of lon/lat set
+     lon0, lat0 = np.mean(lon), np.mean(lat)
      # open new figure window
      plt.figure()
      # setup Lambert Conformal basemap.
      m = Basemap(width=width_fac*100000,height=height_fac*100000, \
 		 projection='lcc', resolution='i', \
-		 lat_1=45.,lat_0=43.6,lon_0=-82.)
+		 lat_1=45.,lat_0=lat0,lon_0=lon0)
      # draw coastlines.
      m.drawcoastlines()
      m.drawcountries()
@@ -318,9 +321,10 @@ def contourPlotOnMap(lon, lat, data, title='data', \
      plt.show()
 
 #
-def contourPlotStationsOnMap(stations, data):
+def contourPlotStationsOnMap(stations, data, title='data', \
+                             width_fac = 16, height_fac = 12):
      lon, lat = getStationLonLat(stations)
-     contourPlotOnMap(lon, lat, data)
+     contourPlotOnMap(lon, lat, data, title, width_fac, height_fac)
 
 #
 def contourPlotVarOnMap(variable, date, npts = 20, ncntrs = 10, \

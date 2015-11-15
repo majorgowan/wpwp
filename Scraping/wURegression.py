@@ -183,14 +183,15 @@ def oneCityPredict(model_params, startDate, endDate, actual=True):
                'R2_mean': regr.score(featureData,target), \
                'R2_base': 1 - sse/ssm, \
                'RMSE': rmse}
-     return date_list, pred, target
+     return date_list, pred, target, model_perf
 
 ###############################################################
 ################## ONE-STATION "TAYLOR" MODEL #################
 ###############################################################
 #
 def oneCityTaylorModel(station, startDate, endDate, \
-                       features, targetVar='TempMax', lag=1, order=0, scale=False):
+                       features, targetVar='TempMax', \
+                       lag=1, order=0, verbose=True, scale=False):
      # build regression model to predict "variable" for a single
      # station using training data from only the same station 
      # between startdate and enddate
@@ -249,22 +250,23 @@ def oneCityTaylorModel(station, startDate, endDate, \
             'scaler': scaler}
      # report regression results:
      print("R^2: " + str(regr.score(featureData,target)))
-     if scale:
-          print("Regression coefficients (scaled, sorted):")
-          print("  intercept" + ":\t" + str(regr.intercept_))
-          for ii in np.argsort(-np.abs(regr.coef_)):
-               ideriv = ii / len(features)
-               ifeat = ii - len(features)*ideriv
-               print("  " + str(ideriv) + 'th deriv of ' \
-                       + features[ifeat] + ":\t" + str(regr.coef_[ii]))         
-     else:
-          print("Regression coefficients:")
-          print("  intercept" + ":\t" + str(regr.intercept_))
-          for ideriv in range(order+1):
-               print("  " + str(ideriv) + "th derivative:")
-               for ii, feature in enumerate(features):
-                    column = len(features)*ideriv + ii
-                    print("    " + feature + ":\t" + str(regr.coef_[column]))
+     if verbose:
+          if scale:
+               print("Regression coefficients (scaled, sorted):")
+               print("  intercept" + ":\t" + str(regr.intercept_))
+               for ii in np.argsort(-np.abs(regr.coef_)):
+                    ideriv = ii / len(features)
+                    ifeat = ii - len(features)*ideriv
+                    print("  " + str(ideriv) + 'th deriv of ' \
+                            + features[ifeat] + ":\t" + str(regr.coef_[ii]))         
+          else:
+               print("Regression coefficients:")
+               print("  intercept" + ":\t" + str(regr.intercept_))
+               for ideriv in range(order+1):
+                    print("  " + str(ideriv) + "th derivative:")
+                    for ii, feature in enumerate(features):
+                         column = len(features)*ideriv + ii
+                         print("    " + feature + ":\t" + str(regr.coef_[column]))
      return featureData, target, model_params
 
 #
@@ -339,7 +341,7 @@ def oneCityTaylorPredict(model_params, startDate, endDate, actual=True):
                'R2_mean': regr.score(featureData,target), \
                'R2_base': 1 - sse/ssm, \
                'RMSE': rmse}
-     return date_list, pred, target
+     return date_list, pred, target, model_perf
 
 
 ###############################################################
@@ -680,13 +682,38 @@ def advectionTaylorPredict(model_params, startDate, endDate, actual=True):
 ################## STATION INTERCOMPARISON ####################
 ###############################################################
 #
-def compareStations(stations, \
-                    startTrain, endTrain, startTest, endTest, \
-                    features, targetVar='TempMax', \
-                    lag=1, order=0):
+def compareStationsOneCity(stations, \
+                           startTrain, endTrain, startTest, endTest, \
+                           features, targetVar='TempMax', \
+                           lag=1, order=0):
      # list of performance measures on test set
      perfList = []
      for targetStation in stations:
+          print('\n' + targetStation + ':')
+          # train model
+          featureData, target, model_params = \
+               oneCityTaylorModel(targetStation, \
+                                  startTrain, endTrain, \
+                                  features, targetVar, \
+                                  lag, order, verbose=False)
+          # test model
+          date_list, pred, target, model_perf = \
+               oneCityTaylorPredict(model_params, \
+                                    startTest, endTest, \
+                                    actual = True)
+          model_perf['station'] = targetStation
+          perfList.append(model_perf)
+     return perfList
+
+#
+def compareStationsMultiCity(stations, \
+                             startTrain, endTrain, startTest, endTest, \
+                             features, targetVar='TempMax', \
+                             lag=1, order=0):
+     # list of performance measures on test set
+     perfList = []
+     for targetStation in stations:
+          print('\n' + targetStation + ':')
           # move targetStation to first in list of stations
           otherStations = [s for s in stations if s != targetStation]
           sortedStations = [targetStation] + otherStations
