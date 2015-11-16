@@ -283,7 +283,9 @@ def contourPlotOnMap(lon, lat, data, title='data', \
      from mpl_toolkits.basemap import Basemap
 
      # compute centre of lon/lat set
-     lon0, lat0 = np.mean(lon), np.mean(lat)
+     lon0, lat0 = 0.5*(np.min(lon)+np.max(lon)), \
+                  0.5*(np.min(lat)+np.max(lat))
+     print('centre at: ', lon0, lat0)
      # open new figure window
      plt.figure()
      # setup Lambert Conformal basemap.

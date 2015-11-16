@@ -6,7 +6,7 @@
 ################## PCA DECOMPOSITION ##########################
 ###############################################################
 #
-def pcaComp(data):
+def pcaComp(data, ncomp = None):
      # compute the principal components of a set of vectors
      # defined by the columns of the array data
      # first rescale the data to have zero mean and unit standard deviation
@@ -17,7 +17,10 @@ def pcaComp(data):
      from sklearn import preprocessing
      scaler = preprocessing.StandardScaler().fit(data)
      scaledData = scaler.transform(data)
-     pc = PCA().fit(scaledData)
+     if ncomp == None:
+          pc = PCA().fit(scaledData)
+     else:
+          pc = PCA(n_components = ncomp).fit(scaledData)
      return pc, scaler
 
 #
@@ -51,7 +54,11 @@ def pcaConvert(stations, features, startDate, endDate, ncomp=None):
      scalers = []
      pcas = []
      pcaData = []
-     for feature in features:
+     if ncomp == None:
+          nc = len(features)*[len(stations)]
+     else:
+          nc = ncomp
+     for ifeat, feature in enumerate(features):
           data = []
           for station in stations:
                vals = Reg.loadDailyVariableRange( \
@@ -61,7 +68,7 @@ def pcaConvert(stations, features, startDate, endDate, ncomp=None):
           # convert data to a numpy array with features as columns
           data = np.array(data).T
           # compute pca transform and standardization transform
-          pc, scaler = pcaComp(data)
+          pc, scaler = pcaComp(data, nc[ifeat])
           # transform data to standardized pca space
           pcaData1 = pcaTransform(pc, scaler, data)
           # convert to a list of principal components
@@ -75,7 +82,7 @@ def pcaConvert(stations, features, startDate, endDate, ncomp=None):
      transform_params = { \
           'features': features, \
           'stations': stations, \
-          'ncomp': ncomp, \
+          'ncomp': nc, \
           'scalers': scalers, \
           'pcas': pcas }
      return pcaData, transform_params
@@ -92,7 +99,7 @@ def pcaPredict(transform_params, startDate, endDate):
      pcas = transform_params['pcas']
 
      pcaData = []
-     for feature in features:
+     for ifeat, feature in enumerate(features):
           data = []
           for station in stations:
                vals = Reg.loadDailyVariableRange( \
@@ -102,9 +109,10 @@ def pcaPredict(transform_params, startDate, endDate):
           # convert data to a numpy array with features as columns
           data = np.array(data).T
           # transform data to standardized pca space
-          pcaData1 = pcaTransform(pc, scaler, data)
+          pcaData1 = pcaTransform(pcas[ifeat], scalers[ifeat], data)
           # convert to a list of principal components
           pcaData1 = (pcaData1.T).tolist()
           # add pc data to list
           pcaData.append(pcaData1)
      return pcaData
+
