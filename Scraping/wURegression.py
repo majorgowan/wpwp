@@ -625,6 +625,7 @@ def multiCityInteractionPredict(model_params, startDate, endDate, actual=True):
      lag = model_params['lag']
      order = model_params['order']
      scale = model_params['scale']
+     prescalers = model_params['prescalers']
      if scale:
           scaler = model_params['scaler']
      # build list of dates in datetime format
@@ -645,14 +646,31 @@ def multiCityInteractionPredict(model_params, startDate, endDate, actual=True):
           target = None
      # load feature data
      featureData = []
+     idata = 0
      for station in stations:
           for feature in features:
-               # print("Adding " + feature + " from " + station)
-               fd = loadDailyVariableRange(station, startDate, endDate, \
-                             feature, castFloat=True)
+	       # check if feature contains an interaction
+	       if ':' in feature:
+                    feat1 = feature.split(':')[0]
+		    feat2 = feature.split(':')[1]
+		    fd1 = loadDailyVariableRange(station, startDate, endDate, \
+				    feat1, castFloat=True)
+		    fd2 = loadDailyVariableRange(station, startDate, endDate, \
+				    feat2, castFloat=True)
+		    # rescale factors in interaction
+		    prescaler1, prescaler2 = prescalers[idata]
+		    fd1 = prescaler1.transform(fd1)
+		    fd2 = prescaler2.transform(fd2)
+		    # compute interaction
+		    fd = (np.array(fd1)*np.array(fd2)).tolist()
+	       else:
+                    fd = loadDailyVariableRange(station, startDate, endDate, \
+                                  feature, castFloat=True)
                # shorten vector by lag
                fd = fd[:(-lag)]
                featureData.append(fd)
+               # increment feature counter
+	       idata += 1
      # add in "derivative" terms
      for ideriv in range(1,order+1):
           ncols = len(stations)*len(features)
@@ -867,7 +885,7 @@ def advectionTaylorPredict(model_params, startDate, endDate, actual=True):
 #
 def pcaTaylorModel(stations, startDate, endDate, \
                    features, ncomp=None, targetVar='TempMax', \
-                   lag=1, order=0, verbose=False):
+                   lag=1, order=0, smooth_window=0, verbose=False):
      # build regression model to predict "variable" for a single
      # station using training data from multiple stations 
      # between startdate and enddate.
@@ -895,6 +913,8 @@ def pcaTaylorModel(stations, startDate, endDate, \
      # load target variable data
      target = loadDailyVariableRange(stations[0], startDate, endDate, \
                         targetVar, castFloat=True)
+     if smooth_window > 0:
+          target = smooth(target, smooth_window)
      # shift vector by lag
      target = target[lag:]
      # load features data and compute PC
@@ -902,6 +922,9 @@ def pcaTaylorModel(stations, startDate, endDate, \
                                                   startDate, endDate, ncomp)
      # flatten featureData into single list of lists, while shortening by lag
      featureData = [data[:(-lag)] for dataList in pcaData for data in dataList] 
+     if smooth_window > 0:
+          for data in featureData:
+               data = smooth(data,smooth_window)
      # number of PC-transformed features
      if ncomp == None:
           nfeat = len(stations)*len(features)
@@ -935,6 +958,7 @@ def pcaTaylorModel(stations, startDate, endDate, \
             'regr': regr, \
             'lag': lag, \
             'order': order, \
+            'smooth_window': smooth_window, \
             'transform_params': transform_params}
      # report regression results:
      print("R^2: " + str(regr.score(featureData,target)))
