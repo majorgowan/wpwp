@@ -82,11 +82,25 @@ def isWesterly(station, startDate, endDate):
      return [int(w > 180.0 and w < 360.0) for w in windDir]
 
 #
+def isEasterly(station, startDate, endDate):
+     # binary variable for max wind (0 = easterly, 1 = westerly)
+     windDir = loadDailyVariableRange(station, startDate, endDate, \
+                           'WindMaxDir', castFloat=True)
+     return [int(w > 0.0 and w < 180.0) for w in windDir]
+
+#
 def isSoutherly(station, startDate, endDate):
      # binary variable for max wind (0 = northerly, 1 = southerly)
      windDir = loadDailyVariableRange(station, startDate, endDate, \
                            'WindMaxDir', castFloat=True)
      return [int(w > 90.0 and w < 270.0) for w in windDir]
+     
+#
+def isNortherly(station, startDate, endDate):
+     # binary variable for max wind (0 = northerly, 1 = southerly)
+     windDir = loadDailyVariableRange(station, startDate, endDate, \
+                           'WindMaxDir', castFloat=True)
+     return [int(w > 270.0 or w < 90.0) for w in windDir]
      
 #
 def windQuadrant(station, startDate, endDate):
@@ -101,4 +115,11 @@ def isFoggy(station, startDate, endDate):
      visibility = loadDailyVariableRange(station, startDate, endDate, \
                            'VisibilityMean', castFloat=True)
      return [int(v < 5.0) for v in visibility]
+
+#
+def isNotFoggy(station, startDate, endDate):
+     # binary variable for fogginess (visibility < 5 km)
+     visibility = loadDailyVariableRange(station, startDate, endDate, \
+                           'VisibilityMean', castFloat=True)
+     return [int(v > 5.0) for v in visibility]
 
