@@ -3,13 +3,14 @@
 ###############################################################
 #
 def collectAllStats(stationList = None):
+     import wUUtils as Util
      import wUnderground as wU
      import os
      if not os.path.exists('CSV_DATA'):
          os.mkdir('CSV_DATA')
      #stations = ['CYYZ', 'CYUL']
      if stationList == None:
-          stations = getStationList()
+          stations = Util.getStationList()
      else:
           stations = stationList
      for station in stations:
@@ -66,17 +67,6 @@ def collectAllStats(stationList = None):
                # print(dataString)
           outfile.close()
           
-
-###############################################################
-###################### GET ALL STATIONS #######################
-###############################################################
-#
-def getStationList():
-     import glob
-     stations = []
-     for infile in sorted(glob.glob('JSON_DATA/*')):
-         stations.append(infile.split('\\')[1])
-     return stations
 
 ###############################################################
 ###################### AGGREGATE STATS ########################

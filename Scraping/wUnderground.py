@@ -1,11 +1,10 @@
-import requests
-import datetime
 
 ###############################################################
 ###################### RETRIEVE WUNDERGROUND PAGE #############
 ###############################################################
 #------------- use HTML parser to download web page with day of hourly data
 def readStationDay(stationCode, year, month, day, echo=False):
+	import requests
 	base = "http://www.wunderground.com/history/airport/"
 	theUrl = base + stationCode + '/' + `year` + '/' + \
 			`month` + '/' + `day` + '/' + \
@@ -13,24 +12,6 @@ def readStationDay(stationCode, year, month, day, echo=False):
 	if echo: print "Retrieving " + theUrl
 	page = requests.get(theUrl)
 	return page.text
-
-#------------- get station position (find from other source)
-def readStationCoord(data):
-#	# latitude:
-#	degrees = 
-#	minutes = 
-#	seconds = 
-#	# longitude:
-#	degrees = 
-#	minutes = 
-#	seconds =
-#	# elevation
-#	elevation = float(data[12])
-#	return {'long': round(longitude,3), \
-#		'lat': round(latitude,3), \
-#		'alt': round(elevation,3), \
-#		}
-	pass
 
 #------------- get number of days in given month (includes leap year calculator)
 def daysInMonth(year, month):
@@ -58,7 +39,7 @@ def readDay(data):
 ###############################################################
 ###################### MAIN DATA RETRIEVAL ROUTINE ############
 ###############################################################
-#------------- airport codes
+#------------- some airport codes
 # Halifax:       CYHZ
 # Ottawa:        CYOW
 # Montreal:      CYUL
@@ -95,6 +76,7 @@ def readDay(data):
 
 #------------- read a block of months from a single station
 def readInterval(stationCode, start, end):
+	import datetime
 	# stationCode : string (e.g. 'CYYZ' for Toronto Pearson)
 	# start, end : strings in form "YYYY-MM"
 	date = []
@@ -183,6 +165,7 @@ def putJSON(dates, data, station, year, month):
 # read from JSON files
 #--
 def getJSON(station, year, month):
+     import datetime
      import json
      # build filename
      filename = 'JSON_DATA/' \

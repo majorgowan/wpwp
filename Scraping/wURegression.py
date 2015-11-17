@@ -3,67 +3,6 @@
 ################################################################
 #
 ###############################################################
-################## HELPER FUNCTIONS ###########################
-###############################################################
-#
-def loadDailyVariableRange(station, startDate, endDate, \
-                           variable, castFloat=False):
-     # generate a list of values for a specified variable from
-     # a specified station over a specified range of dates
-     #
-     # check if variable is a derived variable or a stored variable
-     import wUDerived as Deriv
-     reload(Deriv)
-     # if derived, will be a method in wUDerived module
-     if hasattr(Deriv, variable):
-          methodToCall = getattr(Deriv, variable)
-          return methodToCall(station, startDate, endDate)
-     # else should be stored in CSV file
-     vals = []
-     with open('CSV_DATA/' + station + '.csv','r') as infile:
-          header = infile.readline().strip().split(', ')
-          datepos = header.index('date')
-          varpos = header.index(variable)
-          recording = False
-          for nline in infile:
-               nlist = nline.strip().split(', ')
-               nday = nlist[datepos]
-               if nday == startDate:
-                    recording = True
-               if recording:
-                    if castFloat:
-                         vals.append(float(nlist[varpos]))
-                    else:
-                         vals.append(nlist[varpos])
-               if nday == endDate:
-                    recording = False
-                    break
-     return vals
-
-def smooth(data, window=3):
-     # a simple running mean "boxcar filter"; window is an odd integer
-     import numpy as np
-     shift = window / 2  # integer division
-     last = len(data)-1
-     newdata = []
-     for ii in range(len(data)):
-         start = max(0,ii-shift)
-         end = min(last,ii+shift)
-         val = np.mean(data[start:(end+1)])
-         newdata.append(val) 
-     return newdata
-
-def dateList(startDate, endDate):
-     # generate list of datetime objects for a range of dates
-     # (mostly for plotting purposes)
-     import datetime
-     day0 = datetime.datetime.strptime(startDate,"%Y-%m-%d")
-     dayN = datetime.datetime.strptime(endDate,"%Y-%m-%d")
-     N = (dayN-day0).days
-     date_list = [day0 + datetime.timedelta(days = n) for n in range(0,N+1)]
-     return date_list
-
-###############################################################
 ################## SIMPLEST ONE-STATION MODEL #################
 ###############################################################
 #
@@ -73,11 +12,12 @@ def oneCityModel(station, startDate, endDate, \
      # station using training data from only the same station 
      # between startdate and enddate
      # features is a list of variables to use as predictors
+     import wUUtils as Util
      import numpy as np
      from sklearn import preprocessing
      from sklearn import linear_model
      # load target variable data
-     target = loadDailyVariableRange(station, startDate, endDate, \
+     target = Util.loadDailyVariableRange(station, startDate, endDate, \
                         targetVar, castFloat=True)
      # shift vector by lag
      target = target[lag:]
@@ -85,7 +25,7 @@ def oneCityModel(station, startDate, endDate, \
      featureData = []
      for feature in features:
           # print("Adding " + feature)
-          fd = loadDailyVariableRange(station, startDate, endDate, \
+          fd = Util.loadDailyVariableRange(station, startDate, endDate, \
                         feature, castFloat=True)
           # shorten vector by lag
           fd = fd[:(-lag)]
@@ -129,6 +69,7 @@ def oneCityPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
+     import wUUtils as Util
      # extract city and feature data
      station = model_params['station']
      targetVar = model_params['targetVar']
@@ -139,12 +80,12 @@ def oneCityPredict(model_params, startDate, endDate, actual=True):
      if scale:
           scaler = model_params['scaler']
      # build list of dates in datetime format
-     date_list = dateList(startDate, endDate)
+     date_list = Util.dateList(startDate, endDate)
      date_list = date_list[lag:]
      # if actual data available
      if actual:
           # load target variable data
-          target = loadDailyVariableRange(station, startDate, endDate, \
+          target = Util.loadDailyVariableRange(station, startDate, endDate, \
                              targetVar, castFloat=True)
 
           # "baseline" model is predicted target same as value on prediction day
@@ -160,7 +101,7 @@ def oneCityPredict(model_params, startDate, endDate, actual=True):
      featureData = []
      for feature in features:
           # print("Adding " + feature)
-          fd = loadDailyVariableRange(station, startDate, endDate, \
+          fd = Util.loadDailyVariableRange(station, startDate, endDate, \
                         feature, castFloat=True)
           # shorten vector by lag
           fd = fd[:(-lag)]
@@ -199,10 +140,11 @@ def oneCityTaylorModel(station, startDate, endDate, \
      # use a "Taylor expansion" by combining information from
      # order is the maximum order of derivative to use
      import numpy as np
+     import wUUtils as Util
      from sklearn import preprocessing
      from sklearn import linear_model
      # load target variable data
-     target = loadDailyVariableRange(station, startDate, endDate, \
+     target = Util.loadDailyVariableRange(station, startDate, endDate, \
                         targetVar, castFloat=True)
      # shift vector by lag
      target = target[lag:]
@@ -210,7 +152,7 @@ def oneCityTaylorModel(station, startDate, endDate, \
      featureData = []
      for feature in features:
           # print("Adding " + feature)
-          fd = loadDailyVariableRange(station, startDate, endDate, \
+          fd = Util.loadDailyVariableRange(station, startDate, endDate, \
                         feature, castFloat=True)
           # shorten vector by lag
           fd = fd[:(-lag)]
@@ -274,6 +216,7 @@ def oneCityTaylorPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
+     import wUUtils as Util
      # extract city and feature data
      station = model_params['station']
      targetVar = model_params['targetVar']
@@ -285,12 +228,12 @@ def oneCityTaylorPredict(model_params, startDate, endDate, actual=True):
      if scale:
           scaler = model_params['scaler']
      # build list of dates in datetime format
-     date_list = dateList(startDate, endDate)
+     date_list = Util.dateList(startDate, endDate)
      date_list = date_list[(lag+order):]
      # if actual data available
      if actual:
           # load target variable data
-          target = loadDailyVariableRange(station, startDate, endDate, \
+          target = Util.loadDailyVariableRange(station, startDate, endDate, \
                              targetVar, castFloat=True)
 
           # "baseline" model is predicted target same as value on prediction day
@@ -306,7 +249,7 @@ def oneCityTaylorPredict(model_params, startDate, endDate, actual=True):
      featureData = []
      for feature in features:
           # print("Adding " + feature)
-          fd = loadDailyVariableRange(station, startDate, endDate, \
+          fd = Util.loadDailyVariableRange(station, startDate, endDate, \
                         feature, castFloat=True)
           # shorten vector by lag
           fd = fd[:(-lag)]
@@ -364,10 +307,11 @@ def multiCityTaylorModel(stations, startDate, endDate, \
      #    order: the number of days in the past to include
      #           (also maximum order of time derivative)
      import numpy as np
+     import wUUtils as Util
      from sklearn import preprocessing
      from sklearn import linear_model
      # load target variable data
-     target = loadDailyVariableRange(stations[0], startDate, endDate, \
+     target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                         targetVar, castFloat=True)
      # shift vector by lag
      target = target[lag:]
@@ -376,7 +320,7 @@ def multiCityTaylorModel(stations, startDate, endDate, \
      for station in stations:
           for feature in features:
                # print("Adding " + feature + " from " + station)
-               fd = loadDailyVariableRange(station, startDate, endDate, \
+               fd = Util.loadDailyVariableRange(station, startDate, endDate, \
                              feature, castFloat=True)
                # shorten vector by lag
                fd = fd[:(-lag)]
@@ -435,6 +379,7 @@ def multiCityTaylorPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
+     import wUUtils as Util
      # extract city and feature data
      stations = model_params['stations']
      targetVar = model_params['targetVar']
@@ -446,12 +391,12 @@ def multiCityTaylorPredict(model_params, startDate, endDate, actual=True):
      if scale:
           scaler = model_params['scaler']
      # build list of dates in datetime format
-     date_list = dateList(startDate, endDate)
+     date_list = Util.dateList(startDate, endDate)
      date_list = date_list[(lag+order):]
      # if actual data available
      if actual:
           # load target variable data
-          target = loadDailyVariableRange(stations[0], startDate, endDate, \
+          target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                              targetVar, castFloat=True)
           # "baseline" model is predicted target same as value on prediction day
           baseline = target[order:(-lag)]
@@ -466,7 +411,7 @@ def multiCityTaylorPredict(model_params, startDate, endDate, actual=True):
      for station in stations:
           for feature in features:
                # print("Adding " + feature + " from " + station)
-               fd = loadDailyVariableRange(station, startDate, endDate, \
+               fd = Util.loadDailyVariableRange(station, startDate, endDate, \
                              feature, castFloat=True)
                # shorten vector by lag
                fd = fd[:(-lag)]
@@ -527,10 +472,11 @@ def multiCityInteractionModel(stations, startDate, endDate, \
      #    order: the number of days in the past to include
      #           (also maximum order of time derivative)
      import numpy as np
+     import wUUtils as Util
      from sklearn import preprocessing
      from sklearn import linear_model
      # load target variable data
-     target = loadDailyVariableRange(stations[0], startDate, endDate, \
+     target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                         targetVar, castFloat=True)
      # shift vector by lag
      target = target[lag:]
@@ -543,9 +489,9 @@ def multiCityInteractionModel(stations, startDate, endDate, \
 	       if ':' in feature:
                     feat1 = feature.split(':')[0]
 		    feat2 = feature.split(':')[1]
-		    fd1 = loadDailyVariableRange(station, startDate, endDate, \
+		    fd1 = Util.loadDailyVariableRange(station, startDate, endDate, \
 				    feat1, castFloat=True)
-		    fd2 = loadDailyVariableRange(station, startDate, endDate, \
+		    fd2 = Util.loadDailyVariableRange(station, startDate, endDate, \
 				    feat2, castFloat=True)
 		    prescaler1 = preprocessing.StandardScaler().fit(fd1)
 		    fd1 = prescaler1.transform(fd1)
@@ -556,7 +502,7 @@ def multiCityInteractionModel(stations, startDate, endDate, \
 		    # compute interaction
 		    fd = (np.array(fd1)*np.array(fd2)).tolist()
 	       else:
-                    fd = loadDailyVariableRange(station, startDate, endDate, \
+                    fd = Util.loadDailyVariableRange(station, startDate, endDate, \
                                   feature, castFloat=True)
 		    prescalers.append(None)
                # shorten vector by lag
@@ -617,6 +563,7 @@ def multiCityInteractionPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
+     import wUUtils as Util
      # extract city and feature data
      stations = model_params['stations']
      targetVar = model_params['targetVar']
@@ -629,12 +576,12 @@ def multiCityInteractionPredict(model_params, startDate, endDate, actual=True):
      if scale:
           scaler = model_params['scaler']
      # build list of dates in datetime format
-     date_list = dateList(startDate, endDate)
+     date_list = Util.dateList(startDate, endDate)
      date_list = date_list[(lag+order):]
      # if actual data available
      if actual:
           # load target variable data
-          target = loadDailyVariableRange(stations[0], startDate, endDate, \
+          target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                              targetVar, castFloat=True)
           # "baseline" model is predicted target same as value on prediction day
           baseline = target[order:(-lag)]
@@ -653,9 +600,9 @@ def multiCityInteractionPredict(model_params, startDate, endDate, actual=True):
 	       if ':' in feature:
                     feat1 = feature.split(':')[0]
 		    feat2 = feature.split(':')[1]
-		    fd1 = loadDailyVariableRange(station, startDate, endDate, \
+		    fd1 = Util.loadDailyVariableRange(station, startDate, endDate, \
 				    feat1, castFloat=True)
-		    fd2 = loadDailyVariableRange(station, startDate, endDate, \
+		    fd2 = Util.loadDailyVariableRange(station, startDate, endDate, \
 				    feat2, castFloat=True)
 		    # rescale factors in interaction
 		    prescaler1, prescaler2 = prescalers[idata]
@@ -664,7 +611,7 @@ def multiCityInteractionPredict(model_params, startDate, endDate, actual=True):
 		    # compute interaction
 		    fd = (np.array(fd1)*np.array(fd2)).tolist()
 	       else:
-                    fd = loadDailyVariableRange(station, startDate, endDate, \
+                    fd = Util.loadDailyVariableRange(station, startDate, endDate, \
                                   feature, castFloat=True)
                # shorten vector by lag
                fd = fd[:(-lag)]
@@ -728,11 +675,12 @@ def advectionTaylorModel(stations, startDate, endDate, \
      #    order: the number of days in the past to include
      #           (also maximum order of time derivative)
      import numpy as np
+     import wUUtils as Util
      import wUAdvection as Adv
      reload(Adv)
      from sklearn import linear_model
      # load target variable data
-     target = loadDailyVariableRange(stations[0], startDate, endDate, \
+     target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                         targetVar, castFloat=True)
      # shift vector by lag
      target = target[lag:]
@@ -740,7 +688,7 @@ def advectionTaylorModel(stations, startDate, endDate, \
      featureData = []
      # add data for target station
      for feature in features:
-          fd = loadDailyVariableRange(stations[0], startDate, endDate, \
+          fd = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                              feature, castFloat=True)
           # shorten vector by lag
           fd = fd[:(-lag)]
@@ -804,6 +752,7 @@ def advectionTaylorPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
+     import wUUtils as Util
      import wUAdvection as Adv
      # extract city and feature data
      stations = model_params['stations']
@@ -813,12 +762,12 @@ def advectionTaylorPredict(model_params, startDate, endDate, actual=True):
      lag = model_params['lag']
      order = model_params['order']
      # build list of dates in datetime format
-     date_list = dateList(startDate, endDate)
+     date_list = Util.dateList(startDate, endDate)
      date_list = date_list[(lag+order):]
      # if actual data available
      if actual:
           # load target variable data
-          target = loadDailyVariableRange(stations[0], startDate, endDate, \
+          target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                              targetVar, castFloat=True)
           # "baseline" model is predicted target same as value on prediction day
           baseline = target[order:(-lag)]
@@ -832,7 +781,7 @@ def advectionTaylorPredict(model_params, startDate, endDate, actual=True):
      featureData = []
      # add data for target station
      for feature in features:
-          fd = loadDailyVariableRange(stations[0], startDate, endDate, \
+          fd = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                              feature, castFloat=True)
           # shorten vector by lag
           fd = fd[:(-lag)]
@@ -906,15 +855,16 @@ def pcaTaylorModel(stations, startDate, endDate, \
      #    order: the number of days in the past to include
      #           (also maximum order of time derivative)
      import numpy as np
+     import wUUtils as Util
      import wUPCA
      reload(wUPCA)
      from sklearn import preprocessing
      from sklearn import linear_model
      # load target variable data
-     target = loadDailyVariableRange(stations[0], startDate, endDate, \
+     target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                         targetVar, castFloat=True)
      if smooth_window > 0:
-          target = smooth(target, smooth_window)
+          target = Util.smooth(target, smooth_window)
      # shift vector by lag
      target = target[lag:]
      # load features data and compute PC
@@ -924,7 +874,7 @@ def pcaTaylorModel(stations, startDate, endDate, \
      featureData = [data[:(-lag)] for dataList in pcaData for data in dataList] 
      if smooth_window > 0:
           for data in featureData:
-               data = smooth(data,smooth_window)
+               data = Util.smooth(data,smooth_window)
      # number of PC-transformed features
      if ncomp == None:
           nfeat = len(stations)*len(features)
@@ -984,6 +934,7 @@ def pcaTaylorPredict(model_params, startDate, endDate, actual=True):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
+     import wUUtils as Util
      import wUPCA
      reload(wUPCA)
      # extract city and feature data
@@ -996,12 +947,12 @@ def pcaTaylorPredict(model_params, startDate, endDate, actual=True):
      transform_params = model_params['transform_params']
      ncomp = transform_params['ncomp']
      # build list of dates in datetime format
-     date_list = dateList(startDate, endDate)
+     date_list = Util.dateList(startDate, endDate)
      date_list = date_list[(lag+order):]
      # if actual data available
      if actual:
           # load target variable data
-          target = loadDailyVariableRange(stations[0], startDate, endDate, \
+          target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                              targetVar, castFloat=True)
           # "baseline" model is predicted target same as value on prediction day
           baseline = target[order:(-lag)]
