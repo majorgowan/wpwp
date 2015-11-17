@@ -129,6 +129,7 @@ def toSecondsValues(utc, y):
                val.append(float(y[ii]))
      return time, val
 
+#
 def trapezoid(utc, y):
      import numpy
      # do a time integral of y over UTC time using trapezoid method
@@ -143,6 +144,7 @@ def trapezoid(utc, y):
      interval = numpy.sum(dt)
      return interval, integral
 
+#
 def rectangle(utc, y):
      import numpy
      secperday = float(24*60*60)
@@ -193,8 +195,8 @@ def dailyMean(data, variable, method='rectangle'):
                     interval, integral = rectangle(times, values)
                dm.append(integral/interval)
      return dm
-#
 
+#
 def dailySum(data, variable):
      ds = []
      for day in data:
@@ -216,8 +218,8 @@ def dailySum(data, variable):
                          total += float(value)
                ds.append(total)
      return ds
-#
 
+#
 def dailyMax(data, variable, minmax=1):
      dm = []
      dmpos = []
@@ -253,11 +255,11 @@ def dailyMax(data, variable, minmax=1):
                dm.append(maxval)
                dmpos.append(maxtime)
      return dm, dmpos
-#
 
-# get the nearest non-missing value 
-# (useful if wind direction missing for time of maximum wind)
+#
 def nearestNonMissing(day, variable, index):
+     # get the nearest non-missing value 
+     # (useful if wind direction missing for time of maximum wind)
      if not isMissing(day[index][variable]):
           return day[index][variable]
      else:
@@ -278,6 +280,7 @@ def nearestNonMissing(day, variable, index):
                     return after
      return u'N/A'
 
+#
 def dailyMaxWind(data):
      dmspd = []
      dmdir = []

@@ -2,39 +2,42 @@
 ###############################################################
 ###################### RETRIEVE WUNDERGROUND PAGE #############
 ###############################################################
-#------------- use HTML parser to download web page with day of hourly data
+#
 def readStationDay(stationCode, year, month, day, echo=False):
-	import requests
-	base = "http://www.wunderground.com/history/airport/"
-	theUrl = base + stationCode + '/' + `year` + '/' + \
-			`month` + '/' + `day` + '/' + \
-			"DailyHistory.html?reqdb.magic=1&reqdb.wmo=99999&format=1"
-	if echo: print "Retrieving " + theUrl
-	page = requests.get(theUrl)
-	return page.text
+     # use HTML parser to download web page with day of hourly data
+     import requests
+     base = "http://www.wunderground.com/history/airport/"
+     theUrl = base + stationCode + '/' + `year` + '/' + \
+               `month` + '/' + `day` + '/' + \
+               "DailyHistory.html?reqdb.magic=1&reqdb.wmo=99999&format=1"
+     if echo: print "Retrieving " + theUrl
+     page = requests.get(theUrl)
+     return page.text
 
-#------------- get number of days in given month (includes leap year calculator)
+#
 def daysInMonth(year, month):
-	dim = [31, 28, 31, 30, 31, 30, 31, 31,\
-		30, 31, 30, 31]
-	if month==2:
-		# check if leap year
-		if year%4 == 0 and (year%100 != 0 or year%400 == 0):
-			return 29
-	return dim[month-1]
+     # get number of days in given month (includes leap year calculator)
+     dim = [31, 28, 31, 30, 31, 30, 31, 31,\
+          30, 31, 30, 31]
+     if month==2:
+          # check if leap year
+          if year%4 == 0 and (year%100 != 0 or year%400 == 0):
+               return 29
+     return dim[month-1]
 
-#------------- convert an hour of data from raw list to a dictionary
+# 
 def readDay(data):
-	hourlyData = []
-	# strip trailing whitespace and split into lines (note html/text newline)
-	lines = data.strip().strip('<br />').split('<br />\n')
-	headings = lines[0].strip('<br />\n').split(',')
-	for line in lines[1:]:
-		hourlyData.append(dict(zip(headings, line.split(','))))
-		if 'TemperatureC' not in hourlyData[-1].keys():
-			return hourlyData, -1
-	# print 'success', headings
-	return hourlyData, 0
+     # convert an hour of data from raw list to a dictionary
+     hourlyData = []
+     # strip trailing whitespace and split into lines (note html/text newline)
+     lines = data.strip().strip('<br />').split('<br />\n')
+     headings = lines[0].strip('<br />\n').split(',')
+     for line in lines[1:]:
+          hourlyData.append(dict(zip(headings, line.split(','))))
+          if 'TemperatureC' not in hourlyData[-1].keys():
+               return hourlyData, -1
+     # print 'success', headings
+     return hourlyData, 0
 
 ###############################################################
 ###################### MAIN DATA RETRIEVAL ROUTINE ############
@@ -52,98 +55,98 @@ def readDay(data):
 # --
 # Buffalo:       KBUF
 # Chicago:       KORD
-# Detroit: 	 KDTW
-# Cleveland:	 KCLE
-# Cincinnati:	 KCVG
-# Pittsburgh:	 KPIT
-# New York:	 KJFK
-# Boston:	 KBOS
-# Nashville:	 KBNA
-# Memphis:	 KMEM
-# Indianapolis:	 KIND
-# Philadelphia:	 KPHL
-# St. Louis:	 KSTL
-# Milwaukee:	 KMKE
-# Minneapolis:	 KMSP
-# Charlotte:	 KCLT
-# Washington:	 KIAD
-# Des Moines:	 KDSM
-# Kansas City:	 KMCI
-# Dallas:	 KDFW
+# Detroit:      KDTW
+# Cleveland:    KCLE
+# Cincinnati:   KCVG
+# Pittsburgh:   KPIT
+# New York:     KJFK
+# Boston:  KBOS
+# Nashville:    KBNA
+# Memphis:      KMEM
+# Indianapolis:      KIND
+# Philadelphia:      KPHL
+# St. Louis:    KSTL
+# Milwaukee:    KMKE
+# Minneapolis:  KMSP
+# Charlotte:    KCLT
+# Washington:   KIAD
+# Des Moines:   KDSM
+# Kansas City:  KMCI
+# Dallas:  KDFW
 # Oklahoma City: KOKC
 # --
 # Frankfurt:     EDDF
 
-#------------- read a block of months from a single station
+#
 def readInterval(stationCode, start, end):
-	import datetime
-	# stationCode : string (e.g. 'CYYZ' for Toronto Pearson)
-	# start, end : strings in form "YYYY-MM"
-	date = []
-	data = []
-	# keep track of read failures (usu. page with headings and no data)
-	failures = []
-	startYear = int(start[:4]);  endYear = int(end[:4])
-	startMonth = int(start[5:]); endMonth = int(end[5:])
-	# loop over years
-	for year in range(startYear,endYear+1):
-		# compute start and end month for this year
-		if year == startYear: 
-			sMonth = startMonth
-		else:
-			sMonth = 1
-		if year == endYear: 
-			eMonth = endMonth
-		else:
-			eMonth = 12
-		# loop over months in year
-		for month in range(sMonth,eMonth+1):
-			# loop over days in month
-			for day in range(1,daysInMonth(year,month)+1):
-				stationDay = readStationDay(stationCode, \
-						year, month, day)
-				oneDay, success = readDay(stationDay)
-				# if read failure, save the date and index
-				if success == -1: 
-					print "retrieval error: ", \
-						year, month, day
-					failures.append((len(data), \
-						stationCode, year, month, day))
-				# append data to lists
-				date.append(datetime.date(year,month,day))
-				data.append(oneDay)
-	print "\n\nThere were", len(failures), "failures!! . . .\n\n\n"
-	# go back and retry failures (up to maxIter times)
-	ii = 0
-	maxIter = 5
-	while len(failures) > 0 and ii < maxIter:
-		ii += 1
-		# copy failures from last pass
-		lastFailures = failures[:]
-		# keep track of failures from this pass
-		failures = []
-		for fail in lastFailures:
-			print "retrying ", fail, ". . ."
-			stationDay = readStationDay(*fail[1:])
-			oneDay, success = readDay(stationDay)
-			if success == -1: 
-				print "failed again!"
-				failures.append(fail)
-			else: 
-				print ". . . Gotcha!"
-			data[fail[0]] = oneDay
-		print "\n\n  now [only]", len(failures), "failures!! . . .\n\n\n"
-	# any remaining failures probably genuinely missing data
-	return date, data, failures
+     # read a block of months from a single station
+     import datetime
+     # stationCode : string (e.g. 'CYYZ' for Toronto Pearson)
+     # start, end : strings in form "YYYY-MM"
+     date = []
+     data = []
+     # keep track of read failures (usu. page with headings and no data)
+     failures = []
+     startYear = int(start[:4]);  endYear = int(end[:4])
+     startMonth = int(start[5:]); endMonth = int(end[5:])
+     # loop over years
+     for year in range(startYear,endYear+1):
+          # compute start and end month for this year
+          if year == startYear: 
+               sMonth = startMonth
+          else:
+               sMonth = 1
+          if year == endYear: 
+               eMonth = endMonth
+          else:
+               eMonth = 12
+          # loop over months in year
+          for month in range(sMonth,eMonth+1):
+               # loop over days in month
+               for day in range(1,daysInMonth(year,month)+1):
+                    stationDay = readStationDay(stationCode, \
+                              year, month, day)
+                    oneDay, success = readDay(stationDay)
+                    # if read failure, save the date and index
+                    if success == -1: 
+                         print "retrieval error: ", \
+                              year, month, day
+                         failures.append((len(data), \
+                              stationCode, year, month, day))
+                    # append data to lists
+                    date.append(datetime.date(year,month,day))
+                    data.append(oneDay)
+     print "\n\nThere were", len(failures), "failures!! . . .\n\n\n"
+     # go back and retry failures (up to maxIter times)
+     ii = 0
+     maxIter = 5
+     while len(failures) > 0 and ii < maxIter:
+          ii += 1
+          # copy failures from last pass
+          lastFailures = failures[:]
+          # keep track of failures from this pass
+          failures = []
+          for fail in lastFailures:
+               print "retrying ", fail, ". . ."
+               stationDay = readStationDay(*fail[1:])
+               oneDay, success = readDay(stationDay)
+               if success == -1: 
+                    print "failed again!"
+                    failures.append(fail)
+               else: 
+                    print ". . . Gotcha!"
+               data[fail[0]] = oneDay
+          print "\n\n  now [only]", len(failures), "failures!! . . .\n\n\n"
+     # any remaining failures probably genuinely missing data
+     return date, data, failures
 
 #
 ###############################################################
 ########################## JSON I/O ###########################
 ###############################################################
 #
-#--
-# write to JSON files
 def putJSON(dates, data, station, year, month):
+     # write to JSON files
      import json
      import os
      # check if station folder exists
@@ -162,9 +165,8 @@ def putJSON(dates, data, station, year, month):
           # write block to file
           outfile.write(json.dumps(block,indent=2))
 #
-# read from JSON files
-#--
 def getJSON(station, year, month):
+     # read from JSON files
      import datetime
      import json
      # build filename
@@ -181,9 +183,8 @@ def getJSON(station, year, month):
      return dates, data
 
 #
-# retrieve and store a year from a single station
-#--
 def retrieveStationYear(station, year):
+     # retrieve and store a year from a single station
      start = str(year) + '-01'
      end = str(year) + '-12'
      dates, data, fails = readInterval(station, start, end)
@@ -192,9 +193,9 @@ def retrieveStationYear(station, year):
      for month in range(1,13):
           putJSON(dates, data, station, year, month)
      
-# read entire station folder
-#--
+#
 def getJSONFolder(station):
+     # read entire station folder
      import glob
      import os
      dates = []

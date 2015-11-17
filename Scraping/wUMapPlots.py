@@ -9,6 +9,7 @@
 ###############################################################
 #
 def plotOnMap():
+     import wUUtils as Util
      from mpl_toolkits.basemap import Basemap
      import matplotlib.pyplot as plt
      # setup Lambert Conformal basemap.
@@ -25,9 +26,9 @@ def plotOnMap():
      # fill continents, set lake color same as ocean color.
      m.fillcontinents(color='wheat',lake_color='aqua')
      # plot city locations (Toronto, Montreal, Detroit)
-     cityName = getStationList()
-     lon, lat = getStationLonLat(cityName)
-#     lon, lat = -79.6306, 43.6767 # Location of Boulder
+     cityName = Util.getStationList()
+     lon, lat = Util.getStationLonLat(cityName)
+     # lon, lat = -79.6306, 43.6767 # Location of Boulder
      # convert to map projection coords.
      # Note that lon,lat can be scalars, lists or numpy arrays.
      xpt,ypt = m(lon,lat)
@@ -48,14 +49,15 @@ def nextDay(date):
 
 #
 def plotAdvectionOnMap(targetStation, variable, date, \
-		       width_fac = 16, height_fac = 12):
+                       width_fac = 16, height_fac = 12):
      from mpl_toolkits.basemap import Basemap
      import matplotlib.pyplot as plt
      import wUAdvection as Adv
+     import wUUtils as Util
      # setup Lambert Conformal basemap.
      m = Basemap(width=width_fac*100000,height=height_fac*100000, \
-		 projection='lcc', resolution='i', \
-		 lat_1=45.,lat_0=43.6,lon_0=-82.)
+                 projection='lcc', resolution='i', \
+                 lat_1=45.,lat_0=43.6,lon_0=-82.)
      # draw coastlines.
      m.drawcoastlines()
      m.drawcountries()
@@ -67,8 +69,8 @@ def plotAdvectionOnMap(targetStation, variable, date, \
      # fill continents, set lake color same as ocean color.
      m.fillcontinents(color='wheat',lake_color='aqua')
      # get station locations (Toronto, Montreal, Detroit)
-     stations = getStationList()
-     lon, lat = getStationLonLat(stations)
+     stations = Util.getStationList()
+     lon, lat = Util.getStationLonLat(stations)
      # convert to map projection coords.
      # Note that lon,lat can be scalars, lists or numpy arrays.
      xpt,ypt = m(lon,lat)
@@ -92,6 +94,7 @@ def plotAdvectionOnMap(targetStation, variable, date, \
 def plotWindVectorsOnMap(date):
      from mpl_toolkits.basemap import Basemap
      import matplotlib.pyplot as plt
+     import wUUtils as Util
      # setup Lambert Conformal basemap.
      m = Basemap(width=3200000,height=2500000,projection='lcc',
             resolution='i',lat_1=45.,lat_0=43.6,lon_0=-80.)
@@ -106,15 +109,15 @@ def plotWindVectorsOnMap(date):
      # fill continents, set lake color same as ocean color.
      m.fillcontinents(color='wheat',lake_color='aqua')
      # get city locations (Toronto, Montreal, Detroit)
-     cityName = getStationList()
-     lon, lat = getStationLonLat(cityName)
+     cityName = Util.getStationList()
+     lon, lat = Util.getStationLonLat(cityName)
      # convert to map projection coords.
      # Note that lon,lat can be scalars, lists or numpy arrays.
      xpt,ypt = m(lon,lat)
      m.plot(xpt,ypt,'bo')  # plot a blue dot there
      # compute wind vectors
-     windX = loadDailyVariable(cityName, date, 'WindMeanX')
-     windY = loadDailyVariable(cityName, date, 'WindMeanY')
+     windX = Util.loadDailyVariable(cityName, date, 'WindMeanX')
+     windY = Util.loadDailyVariable(cityName, date, 'WindMeanY')
      for icity in range(len(cityName)):
           stretch = 20000
           dx, dy = stretch*windX[icity], stretch*windY[icity]
@@ -126,6 +129,7 @@ def plotWindVectorsOnMap(date):
 #
 def plotMeanWindVectorsOnMap(startDate, endDate):
      import numpy as np
+     import wUUtils as Util
      from mpl_toolkits.basemap import Basemap
      import matplotlib.pyplot as plt
      # setup Lambert Conformal basemap.
@@ -142,8 +146,8 @@ def plotMeanWindVectorsOnMap(startDate, endDate):
      # fill continents, set lake color same as ocean color.
      m.fillcontinents(color='wheat',lake_color='aqua')
      # get station locations (Toronto, Montreal, Detroit)
-     stations = getStationList()
-     lon, lat = getStationLonLat(stations)
+     stations = Util.getStationList()
+     lon, lat = Util.getStationLonLat(stations)
      # convert to map projection coords.
      # Note that lon,lat can be scalars, lists or numpy arrays.
      xpt,ypt = m(lon,lat)
@@ -152,12 +156,12 @@ def plotMeanWindVectorsOnMap(startDate, endDate):
      windX = []
      windY = []
      for station in stations:
-          wX = loadDailyVariableRange(station, startDate, endDate, \
+          wX = Util.loadDailyVariableRange(station, startDate, endDate, \
                                         'WindMeanX', castFloat=True)
-	  windX.append(np.mean(wX))
-          wY = loadDailyVariableRange(station, startDate, endDate, \
+          windX.append(np.mean(wX))
+          wY = Util.loadDailyVariableRange(station, startDate, endDate, \
                                         'WindMeanY', castFloat=True)
-	  windY.append(np.mean(wY))
+          windY.append(np.mean(wY))
      for istation in range(len(stations)):
           stretch = 50000
           dx, dy = stretch*windX[istation], stretch*windY[istation]
@@ -213,8 +217,8 @@ def contourPlotOnMap(lon, lat, data, title='data', \
      plt.figure()
      # setup Lambert Conformal basemap.
      m = Basemap(width=width_fac*100000,height=height_fac*100000, \
-		 projection='lcc', resolution='i', \
-		 lat_1=45.,lat_0=lat0,lon_0=lon0)
+                 projection='lcc', resolution='i', \
+                 lat_1=45.,lat_0=lat0,lon_0=lon0)
      # draw coastlines.
      m.drawcoastlines()
      m.drawcountries()
@@ -248,13 +252,15 @@ def contourPlotOnMap(lon, lat, data, title='data', \
 #
 def contourPlotStationsOnMap(stations, data, title='data', \
                              width_fac = 16, height_fac = 12):
-     lon, lat = getStationLonLat(stations)
+     import wUUtils as Util
+     lon, lat = Util.getStationLonLat(stations)
      contourPlotOnMap(lon, lat, data, title, width_fac, height_fac)
 
 #
 def contourPlotVarOnMap(variable, date, npts = 20, ncntrs = 10, \
-			    width_fac = 16, height_fac = 12):
+                            width_fac = 16, height_fac = 12):
      import numpy as np
+     import wUUtils as Util
      import matplotlib.pyplot as plt
      import scipy.interpolate
      from mpl_toolkits.basemap import Basemap
@@ -262,8 +268,8 @@ def contourPlotVarOnMap(variable, date, npts = 20, ncntrs = 10, \
      plt.figure()
      # setup Lambert Conformal basemap.
      m = Basemap(width=width_fac*100000,height=height_fac*100000, \
-		 projection='lcc', resolution='i', \
-		 lat_1=45.,lat_0=43.6,lon_0=-82.)
+                 projection='lcc', resolution='i', \
+                 lat_1=45.,lat_0=43.6,lon_0=-82.)
      # draw coastlines.
      m.drawcoastlines()
      m.drawcountries()
@@ -273,9 +279,9 @@ def contourPlotVarOnMap(variable, date, npts = 20, ncntrs = 10, \
      # the continents/data will be drawn on top.
      m.drawmapboundary(fill_color='aqua')
      # load data
-     stations = getStationList()
-     lon, lat = getStationLonLat(stations)
-     data = loadDailyVariable(stations, date, variable)
+     stations = Util.getStationList()
+     lon, lat = Util.getStationLonLat(stations)
+     data = Util.loadDailyVariable(stations, date, variable)
      # print(zip(stations,data))
      # convert data to arrays:
      x, y, z = np.array(lon), np.array(lat), np.array(data)
@@ -305,9 +311,10 @@ def contourPlotVarOnMap(variable, date, npts = 20, ncntrs = 10, \
 
 #
 def contourPlotMeanVarOnMap(variable, startDate, endDate, \
-		            npts = 20, ncntrs = 10, \
-			    width_fac = 16, height_fac = 12):
+                            npts = 20, ncntrs = 10, \
+                            width_fac = 16, height_fac = 12):
      import numpy as np
+     import wUUtils as Util
      import matplotlib.pyplot as plt
      import scipy.interpolate
      from mpl_toolkits.basemap import Basemap
@@ -315,8 +322,8 @@ def contourPlotMeanVarOnMap(variable, startDate, endDate, \
      plt.figure()
      # setup Lambert Conformal basemap.
      m = Basemap(width=width_fac*100000,height=height_fac*100000, \
-		 projection='lcc', resolution='i', \
-		 lat_1=45.,lat_0=43.6,lon_0=-82.)
+                 projection='lcc', resolution='i', \
+                 lat_1=45.,lat_0=43.6,lon_0=-82.)
      # draw coastlines.
      m.drawcoastlines()
      m.drawcountries()
@@ -326,13 +333,13 @@ def contourPlotMeanVarOnMap(variable, startDate, endDate, \
      # the continents/data will be drawn on top.
      m.drawmapboundary(fill_color='aqua')
      # load data
-     stations = getStationList()
-     lon, lat = getStationLonLat(stations)
+     stations = Util.getStationList()
+     lon, lat = Util.getStationLonLat(stations)
      data = []
      for station in stations:
-          vals = loadDailyVariableRange(station, startDate, endDate, \
+          vals = Util.loadDailyVariableRange(station, startDate, endDate, \
                                         variable, castFloat=True)
-	  data.append(np.mean(vals))
+          data.append(np.mean(vals))
      # print(zip(stations,data))
      # convert data to arrays:
      x, y, z = np.array(lon), np.array(lat), np.array(data)
