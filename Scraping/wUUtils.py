@@ -79,6 +79,22 @@ def loadDailyVariableRange(station, startDate, endDate, \
                     break
      return vals
 
+def loadDailyVariableSetRange(stations, startDate, endDate, \
+                              features):
+     # load a set of features from a set of stations between
+     # given start and end dates
+     # 
+     # return a list of lists of data 
+     # (one list per feature per station)
+     #
+     featureData = []
+     for station in stations:
+          for feature in features:
+               fd = loadDailyVariableRange(station, startDate, endDate, \
+                             feature, castFloat=True)
+               featureData.append(fd)
+     return featureData     
+
 ###############################################################
 #################### MISCELLANEOUS ############################
 ###############################################################

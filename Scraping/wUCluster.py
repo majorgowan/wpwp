@@ -9,7 +9,6 @@ def computeClusters(data, nclusters, ranseed = 666, scale=True):
      import numpy as np
      from sklearn import preprocessing
      from sklearn.cluster import KMeans 
-
      scaler = None
      if scale:
           scaler = preprocessing.StandardScaler().fit(data)
@@ -35,5 +34,41 @@ def assignClusters(scaler, clusterer, data):
      else:
           scaledData = scaler.transform(data)
      classes = clusterer.predict(scaledData)
-
      return classes
+
+#
+def clusterFeatures(featureData, features, clusterFeatures, nclusters):
+     # - separate features to be used for clustering
+     # - compute clusters
+     import numpy as np
+     cols = [features.index(f) for f in features if f in clusterFeatures]
+     clusterData = np.array([featureData[ii] for ii in cols]).T
+     scaler, clusterer = computeClusters(clusterData, nclusters)
+     classes = assignClusters(scaler, clusterer, clusterData)
+     clusterParams = { \
+               'scaler': scaler, \
+               'clusterer': clusterer, \
+               'nclusters': nclusters, \
+               'features': features, \
+               'clusterFeatures': clusterFeatures}
+     return classes, clusterParams
+
+#
+def assignClustersAllFeatures(featureData, clusterParams):
+     # separate data into subsets by class
+     scaler = clusterParams['scaler']
+     clusterer = clusterParams['clusterer']
+     features = clusterParams['features']
+     clusterFeatures = clusterParams['clusterParams']
+     nclusters = clusterParams['nclusters']
+
+     cols = [features.index(f) for f in features if f in clusterFeatures]
+     clusterData = np.array([featureData[ii] for ii in cols]).T
+     classes = assignClusters(scaler, clusterer, clusterData)
+
+     clusters = []
+     for cl in range(nclusters):
+          clust = [[f[i] for i,f in enumerate(feat) if classes[i]==cl] \
+                         for feat in featureData]
+          clusters.append(clust)
+     return classes, clusters
