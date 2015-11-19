@@ -73,9 +73,11 @@ def collectAllStats(stationList = None):
 ###############################################################
 #
 def isMissing(valString):
-     if (valString in ['N/A', '-9999', '-9999.0', '101.6', '']):
+     if (valString in ['N/A', '-9999', '-9999.0', '101.6', '135.4', '']):
           if (valString == '101.6'):
               print('101.6!!! It must be Cleveland!')
+          if (valString == '135.4'):
+              print('135.4??! It must be Philadelphia!')
           return True
      else:
           # a few entries are very large numbers (corrupted or typos no doubt)

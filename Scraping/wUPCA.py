@@ -50,7 +50,7 @@ def pcaConvert(stations, features, startDate, endDate, ncomp=None):
      #      - a list of the scaler transforms (one per feature)
      #      - a list of the pca transform (one per feature)
      import numpy as np
-     import wURegression as Reg
+     import wUUtils as Util
      scalers = []
      pcas = []
      pcaData = []
@@ -61,7 +61,7 @@ def pcaConvert(stations, features, startDate, endDate, ncomp=None):
      for ifeat, feature in enumerate(features):
           data = []
           for station in stations:
-               vals = Reg.loadDailyVariableRange( \
+               vals = Util.loadDailyVariableRange( \
                              station, startDate, endDate, \
                              feature, castFloat=True)
                data.append(vals)
@@ -92,7 +92,7 @@ def pcaPredict(transform_params, startDate, endDate):
      # apply pca and scaling transform constructed on a training
      # set to an out-of-sample (or in-sample!) set
      import numpy as np
-     import wURegression as Reg
+     import wUUtils as Util
      stations = transform_params['stations']
      features = transform_params['features']
      scalers = transform_params['scalers']
@@ -102,7 +102,7 @@ def pcaPredict(transform_params, startDate, endDate):
      for ifeat, feature in enumerate(features):
           data = []
           for station in stations:
-               vals = Reg.loadDailyVariableRange( \
+               vals = Util.loadDailyVariableRange( \
                              station, startDate, endDate, \
                              feature, castFloat=True)
                data.append(vals)

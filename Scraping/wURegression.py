@@ -849,7 +849,7 @@ def pcaTaylorModel(stations, startDate, endDate, \
      # stations: a list of station codes, the first entry is
      #             the station for which forecast is generated
      # features: a list of variables to use as predictors
-     #    ncomp: a lits of same length as features containing the
+     #    ncomp: a list of same length as features containing the
      #           number of PCA to keep for each feature
      #      lag: the number of days in the future to forecast
      #    order: the number of days in the past to include
