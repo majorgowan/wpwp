@@ -37,13 +37,13 @@ def assignClusters(scaler, clusterer, data):
      return classes
 
 #
-def clusterFeatures(featureData, features, clusterFeatures, nclusters):
+def clusterFeatureData(featureData, features, clusterFeatures, nclusters, ranseed=666):
      # - separate features to be used for clustering
      # - compute clusters
      import numpy as np
      cols = [features.index(f) for f in features if f in clusterFeatures]
      clusterData = np.array([featureData[ii] for ii in cols]).T
-     scaler, clusterer = computeClusters(clusterData, nclusters)
+     scaler, clusterer = computeClusters(clusterData, nclusters, ranseed)
      classes = assignClusters(scaler, clusterer, clusterData)
      clusterParams = { \
                'scaler': scaler, \
@@ -56,10 +56,11 @@ def clusterFeatures(featureData, features, clusterFeatures, nclusters):
 #
 def assignClustersAllFeatures(featureData, clusterParams):
      # separate data into subsets by class
+     import numpy as np
      scaler = clusterParams['scaler']
      clusterer = clusterParams['clusterer']
      features = clusterParams['features']
-     clusterFeatures = clusterParams['clusterParams']
+     clusterFeatures = clusterParams['clusterFeatures']
      nclusters = clusterParams['nclusters']
 
      cols = [features.index(f) for f in features if f in clusterFeatures]
@@ -68,7 +69,7 @@ def assignClustersAllFeatures(featureData, clusterParams):
 
      clusters = []
      for cl in range(nclusters):
-          clust = [[f[i] for i,f in enumerate(feat) if classes[i]==cl] \
-                         for feat in featureData]
-          clusters.append(clust)
+         clust = [f for i,f in enumerate(zip(*featureData)) if classes[i]==cl]
+         clusters.append( map(list,zip(*clust)) )
+
      return classes, clusters
