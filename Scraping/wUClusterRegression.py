@@ -255,16 +255,29 @@ def clusterRegressionPredict(modelParams, startDate, endDate, actual=True):
           preds.append(regr.predict(featureClusters[icl]))
           if actual:
                targetClusters[icl] = np.array(targetClusters[icl])
-               print('Cluster ' + str(icl) + ':')
-               print("  R^2_mean:" + "\t" + str(regrs[icl].score(featureClusters[icl],targetClusters[icl])))
+               print('Cluster %d, %d rows:' % (icl,len(dateClusters[icl])) )
+               r2 = regrs[icl].score(featureClusters[icl],targetClusters[icl])
+               print('  R^2_mean:' + '\t' + str(r2))
                rmse = np.sqrt(((preds[icl] - targetClusters[icl])**2).mean())
-               print("  RMSE:\t" + "\t" + str(rmse))
+               print('  RMSE:\t' + '\t' + str(rmse))
+               RMSE.append(rmse)
+               R2.append(r2)
+
      # assemble predictions into one list
      date_list_mixed = np.concatenate(dateClusters).tolist()
      pred_mixed = np.concatenate(preds).tolist()
      pred = [pr for (d,pr) in sorted(zip(date_list_mixed,pred_mixed))]
 
-     return date_list, pred, target #, model_perf
+     if actual:
+          rmse = np.sqrt(((np.array(pred) - np.array(target))**2).mean()) 
+          print('\nOverall performance:')
+          print('  RMSE:' + '\t' + str(rmse))
+
+          modelPerf = {'RMSE': RMSE, 'R2': R2, 'RMSE_total': rmse }
+     else:
+          modelPerf = None
+
+     return date_list, pred, target, featureData, classes, modelPerf
 
 
 ###############################################################
@@ -403,6 +416,7 @@ def pcaClusterModel(stations, startDate, endDate, \
             'features': features, \
             'clusterVars': clusterVars, \
             'clusterParams': clusterParams, \
+            'classes': classes, \
             'regrs': regrs, \
             'lag': lag, \
             'order': order, \
@@ -488,6 +502,8 @@ def pcaClusterPredict(modelParams, startDate, endDate, actual=True):
          # dates
          dateClusters.append([t for i,t in enumerate(date_list) if classes[i] == icl])
 
+     R2 = []
+     RMSE = []
      preds = []
      for icl in range(nclusters):
           regr = regrs[icl]
@@ -498,10 +514,12 @@ def pcaClusterPredict(modelParams, startDate, endDate, actual=True):
           if actual:
                targetClusters[icl] = np.array(targetClusters[icl])
                print('Cluster %d, %d rows:' % (icl,len(dateClusters[icl])) )
-               print('  R^2_mean:' + '\t' + \
-                     str(regrs[icl].score(featureClusters[icl],targetClusters[icl])))
+               r2 = regrs[icl].score(featureClusters[icl],targetClusters[icl])
+               print('  R^2_mean:' + '\t' + str(r2))
                rmse = np.sqrt(((preds[icl] - targetClusters[icl])**2).mean())
                print('  RMSE:\t' + '\t' + str(rmse))
+               RMSE.append(rmse)
+               R2.append(r2)
      
      # assemble predictions into one list
      date_list_mixed = np.concatenate(dateClusters).tolist()
@@ -513,5 +531,9 @@ def pcaClusterPredict(modelParams, startDate, endDate, actual=True):
           print('\nOverall performance:')
           print('  RMSE:' + '\t' + str(rmse))
 
-     return date_list, pred, target #, model_perf
+          modelPerf = {'RMSE': RMSE, 'R2': R2, 'RMSE_total': rmse }
+     else:
+          modelPerf = None
+
+     return date_list, pred, target, featureData, classes, modelPerf
 
