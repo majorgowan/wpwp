@@ -123,3 +123,85 @@ def isNotFoggy(station, startDate, endDate):
                            'VisibilityMean', castFloat=True)
      return [int(v > 5.0) for v in visibility]
 
+################################################################
+################## TIME-OF-DAY STATISTICS ######################
+################################################################
+#
+def isMorningMinTemp(station, startDate, endDate):
+     # binary variable for minimum temperature occurring before noon local time
+     import datetime
+     mTime = loadDailyVariableRange(station, startDate, endDate, \
+                           'TempMinTime', castFloat=False)
+     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+                           'TimeZone', castFloat=True)
+     # convert minTime to datetime
+     mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
+     hours = [(mm.hour + mm.minute/60 + timeZone[i]) % 24 \
+                                           for i,mm in enumerate(mTime)]
+     isMorning = [int(hour < 12) for hour in hours]
+     return(isMorning)
+
+#
+def isMorningMaxTemp(station, startDate, endDate):
+     # binary variable for maximum temperature occurring before noon local time
+     import datetime
+     mTime = loadDailyVariableRange(station, startDate, endDate, \
+                           'TempMaxTime', castFloat=False)
+     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+                           'TimeZone', castFloat=True)
+     # convert maxTime to datetime
+     mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
+     hours = [(mm.hour + mm.minute/60 + timeZone[i]) % 24 \
+                                           for i,mm in enumerate(mTime)]
+     isMorning = [int(hour < 12) for hour in hours]
+     return(isMorning)
+
+#
+def isMorningMinPress(station, startDate, endDate):
+     # binary variable for minimum pressure occurring before noon local time
+     import datetime
+     mTime = loadDailyVariableRange(station, startDate, endDate, \
+                           'PressMinTime', castFloat=False)
+     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+                           'TimeZone', castFloat=True)
+     # convert minTime to datetime
+     mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
+     hours = [(mm.hour + mm.minute/60 + timeZone[i]) % 24 \
+                                           for i,mm in enumerate(mTime)]
+     isMorning = [int(hour < 12) for hour in hours]
+     return(isMorning)
+
+#
+def isMorningMaxPress(station, startDate, endDate):
+     # binary variable for maximum pressure occurring before noon local time
+     import datetime
+     mTime = loadDailyVariableRange(station, startDate, endDate, \
+                           'PressMaxTime', castFloat=False)
+     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+                           'TimeZone', castFloat=True)
+     # convert maxTime to datetime
+     mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
+     hours = [(mm.hour + mm.minute/60 + timeZone[i]) % 24 \
+                                           for i,mm in enumerate(mTime)]
+     isMorning = [int(hour < 12) for hour in hours]
+     return(isMorning)
+
+#
+def isMorningMaxWind(station, startDate, endDate):
+     # binary variable for maximum wind speed occurring before noon local time
+     import datetime
+     mTime = loadDailyVariableRange(station, startDate, endDate, \
+                           'WindMaxTime', castFloat=False)
+     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+                           'TimeZone', castFloat=True)
+     # convert maxTime to datetime
+     mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
+     hours = [(mm.hour + mm.minute/60 + timeZone[i]) % 24 \
+                                           for i,mm in enumerate(mTime)]
+     isMorning = [int(hour < 12) for hour in hours]
+     return(isMorning)
+
+
+
+
+

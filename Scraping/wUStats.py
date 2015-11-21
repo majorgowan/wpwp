@@ -19,6 +19,7 @@ def collectAllStats(stationList = None):
           outfile = open('CSV_DATA/' + station + '.csv','w')
           # calculate summary statistics
           dates, data = wU.getJSONFolder(station)
+          TimeZone = getTimeZoneOffset(data)
           TempMean = dailyMean(data,'TemperatureC')
           TempMin, TempMinTime = dailyMax(data,'TemperatureC',-1)
           TempMax, TempMaxTime = dailyMax(data,'TemperatureC',1)
@@ -34,7 +35,7 @@ def collectAllStats(stationList = None):
           WindMeanX = dailyMean(data,'xSpeed')
           WindMeanY = dailyMean(data,'ySpeed')
 
-          headString = 'date, TempMean, TempMin, TempMinTime, ' \
+          headString = 'date, TimeZone, TempMean, TempMin, TempMinTime, ' \
                 + 'TempMax, TempMaxTime, TotalPrecip, VisibilityMean, ' \
                 + 'PressMean, PressMin, PressMinTime, ' \
                 + 'PressMax, PressMaxTime, HumidityMean, ' \
@@ -44,6 +45,7 @@ def collectAllStats(stationList = None):
           outfile.write(headString + '\n')
           for ii in range(len(dates)):
                dataString = dates[ii].isoformat() + ', '
+               dataString += unicode(TimeZone[ii]) + ', '
                dataString += unicode('%.2f' % TempMean[ii]) + ', '
                dataString += unicode(TempMin[ii]) + ', '
                dataString += unicode(TempMinTime[ii]) + ', '
@@ -67,6 +69,42 @@ def collectAllStats(stationList = None):
                # print(dataString)
           outfile.close()
           
+###############################################################
+###################### RECORD TIMEZONE (ATTN DST) #############
+###############################################################
+#
+def getTimeZoneOffset(data):
+     tz = []
+     for day in data:
+         keys = day[0].keys()
+         if   'TimePST' in keys:
+              tz.append('-8')
+         elif 'TimePDT' in keys:
+              tz.append('-7')
+         elif 'TimeMST' in keys:
+              tz.append('-7')
+         elif 'TimeMDT' in keys:
+              tz.append('-6')
+         elif 'TimeCST' in keys:
+              tz.append('-6')
+         elif 'TimeCDT' in keys:
+              tz.append('-5')
+         elif 'TimeEST' in keys:
+              tz.append('-5')
+         elif 'TimeEDT' in keys:
+              tz.append('-4')
+         elif 'TimeAST' in keys:
+              tz.append('-4')
+         elif 'TimeADT' in keys:
+              tz.append('-3')
+         elif 'TimeNST' in keys:
+              tz.append('-3.5')
+         elif 'TimeNDT' in keys:
+              tz.append('-2.5')
+         else:
+              tz.append('N/A')
+     return tz
+
 
 ###############################################################
 ###################### AGGREGATE STATS ########################

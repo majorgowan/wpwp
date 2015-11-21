@@ -243,6 +243,8 @@ def clusterRegressionPredict(modelParams, startDate, endDate, actual=True):
                targetClusters = [target]
 
      preds = []
+     RMSE = []
+     R2 = []
      for icl in range(nclusters):
           # convert features and target to arrays
           featureClusters[icl] = (np.array(featureClusters[icl])).T
