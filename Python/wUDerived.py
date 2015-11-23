@@ -157,7 +157,7 @@ def isMorningMaxTemp(station, startDate, endDate):
      return(isMorning)
 
 #
-def isMorningMinPress(station, startDate, endDate):
+def isDaytimeMinPress(station, startDate, endDate):
      # binary variable for minimum pressure occurring before noon local time
      import datetime
      mTime = loadDailyVariableRange(station, startDate, endDate, \
@@ -168,11 +168,11 @@ def isMorningMinPress(station, startDate, endDate):
      mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
      hours = [(mm.hour + mm.minute/60 + timeZone[i]) % 24 \
                                            for i,mm in enumerate(mTime)]
-     isMorning = [int(hour < 12) for hour in hours]
-     return(isMorning)
+     isDaytime = [int(hour > 8 and hour < 20) for hour in hours]
+     return(isDaytime)
 
 #
-def isMorningMaxPress(station, startDate, endDate):
+def isDaytimeMaxPress(station, startDate, endDate):
      # binary variable for maximum pressure occurring before noon local time
      import datetime
      mTime = loadDailyVariableRange(station, startDate, endDate, \
@@ -183,8 +183,8 @@ def isMorningMaxPress(station, startDate, endDate):
      mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
      hours = [(mm.hour + mm.minute/60 + timeZone[i]) % 24 \
                                            for i,mm in enumerate(mTime)]
-     isMorning = [int(hour < 12) for hour in hours]
-     return(isMorning)
+     isDaytime = [int(hour > 8 and hour < 20) for hour in hours]
+     return(isDaytime)
 
 #
 def isMorningMaxWind(station, startDate, endDate):

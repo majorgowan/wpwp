@@ -1057,7 +1057,7 @@ def compareStationsMultiCity(stations, \
 ################## PLOT RESULTS ###############################
 ###############################################################
 #
-def plotModelPred(date_list, pred, target, startIndex=0, endIndex=0):
+def plotModelPred(date_list, pred, target, startIndex=0, endIndex=0, showIt=True):
      # plot a prediction and the actual values versus date
      import matplotlib.pyplot as plt
      fig = plt.figure()
@@ -1082,7 +1082,8 @@ def plotModelPred(date_list, pred, target, startIndex=0, endIndex=0):
               pred[sI:eI], color='red')
      plt.legend((tp, pp),('Truth','Predicted'))
      fig.autofmt_xdate()
-     plt.show()
+     if showIt:
+          plt.show()
      return ax
      
 #

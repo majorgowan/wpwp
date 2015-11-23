@@ -9,6 +9,8 @@ Objective: predict future weather from past
 weather without integrating any differential
 equations
 
+Author: Mark D. Fruman
+
 Tools:
-1. R
-2. ...
+1. Python (matplotlib, sklearn, pandas, ...)
+2. IPython notebooks

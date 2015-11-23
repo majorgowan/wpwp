@@ -78,7 +78,7 @@ def readDay(data):
 # Frankfurt:     EDDF
 
 #
-def readInterval(stationCode, start, end):
+def readInterval(stationCode, start, end, verbose=True):
      # read a block of months from a single station
      import datetime
      # stationCode : string (e.g. 'CYYZ' for Toronto Pearson)
@@ -89,6 +89,7 @@ def readInterval(stationCode, start, end):
      failures = []
      startYear = int(start[:4]);  endYear = int(end[:4])
      startMonth = int(start[5:]); endMonth = int(end[5:])
+     print('reading ' + stationCode + '. . .')
      # loop over years
      for year in range(startYear,endYear+1):
           # compute start and end month for this year
@@ -109,14 +110,15 @@ def readInterval(stationCode, start, end):
                     oneDay, success = readDay(stationDay)
                     # if read failure, save the date and index
                     if success == -1: 
-                         print "retrieval error: ", \
-                              year, month, day
+                         if verbose:
+                              print "retrieval error: ", \
+                                   year, month, day
                          failures.append((len(data), \
                               stationCode, year, month, day))
                     # append data to lists
                     date.append(datetime.date(year,month,day))
                     data.append(oneDay)
-     print "\n\nThere were", len(failures), "failures!! . . .\n\n\n"
+     print "There were", len(failures), "failures!! . . ."
      # go back and retry failures (up to maxIter times)
      ii = 0
      maxIter = 5
@@ -127,16 +129,19 @@ def readInterval(stationCode, start, end):
           # keep track of failures from this pass
           failures = []
           for fail in lastFailures:
-               print "retrying ", fail, ". . ."
+               if verbose:
+                    print "retrying ", fail, ". . ."
                stationDay = readStationDay(*fail[1:])
                oneDay, success = readDay(stationDay)
                if success == -1: 
-                    print "failed again!"
+                    if verbose:
+                         print "failed again!"
                     failures.append(fail)
                else: 
-                    print ". . . Gotcha!"
+                    if verbose:
+                         print ". . . Gotcha!"
                data[fail[0]] = oneDay
-          print "\n\n  now [only]", len(failures), "failures!! . . .\n\n\n"
+          print ". . . now [only]", len(failures), "failures!! . . ."
      # any remaining failures probably genuinely missing data
      return date, data, failures
 

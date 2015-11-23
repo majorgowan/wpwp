@@ -23,7 +23,7 @@ def dDeriv(station1, station2, variable, startDate, endDate):
      import numpy as np
      import wUUtils as Util
      # load longitude and latitude of both stations
-     lon, lat = getStationLonLat([station1, station2])
+     lon, lat = Util.getStationLonLat([station1, station2])
      # compute unit vector from station2 to station1
      uVec = unitVector(lon, lat)
      # print("unit vector: " + str(uVec))

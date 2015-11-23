@@ -121,7 +121,7 @@ def isMissing(valString):
           # a few entries are very large numbers (corrupted or typos no doubt)
           try:
                if abs(float(valString)) > 1500.: 
-                    print("TOO TOO BIG!!! " + valString)
+                    # print("TOO TOO BIG!!! " + valString)
                     return True
           except:
                pass
@@ -261,6 +261,7 @@ def dailySum(data, variable):
 
 #
 def dailyMax(data, variable, minmax=1):
+     import random
      dm = []
      dmpos = []
      # loop over days
@@ -276,6 +277,7 @@ def dailyMax(data, variable, minmax=1):
                dmpos.append(u'N/A')
           else:
                val = []
+               times = []
                # isolate time of day and variable
                for hour in day:
                     value = hour[variable]
@@ -283,6 +285,7 @@ def dailyMax(data, variable, minmax=1):
                     if not isMissing(value):
                          try:
                              val.append(float(value))
+                             times.append(hour['DateUTC'])
                          except:
                              print(day[0]['DateUTC'] + ' ' + str(value))
                              return -1
@@ -291,7 +294,11 @@ def dailyMax(data, variable, minmax=1):
                     maxval = max(val)
                elif minmax == -1:
                     maxval = min(val)
-               maxtime = day[val.index(maxval)]['DateUTC']
+               # randomly choose between occurrences of maxval:
+               cands = [i for i,v in enumerate(val) if v == maxval]
+               winner = random.choice(cands)
+               maxtime = times[winner]
+
                dm.append(maxval)
                dmpos.append(maxtime)
      return dm, dmpos
@@ -322,6 +329,7 @@ def nearestNonMissing(day, variable, index):
 
 #
 def dailyMaxWind(data):
+     import random
      dmspd = []
      dmdir = []
      dmtime = []
@@ -339,6 +347,7 @@ def dailyMaxWind(data):
                dmtime.append(u'N/A')
           else:
                val = []
+               times = []
                # isolate time of day and variable
                for hour in day:
                     value = hour['Wind SpeedKm/h']
@@ -348,13 +357,18 @@ def dailyMaxWind(data):
                     if not isMissing(value):
                          try:
                              val.append(float(value))
+                             times.append(hour['DateUTC'])
                          except:
                              print(day[0]['DateUTC'] + ' ' + str(value))
                              return -1
                # compute max or min
                maxval = max(val)
                maxdir = nearestNonMissing(day,'WindDirDegrees',val.index(maxval))
-               maxtime = day[val.index(maxval)]['DateUTC']
+               # randomly choose between occurrences of maxval:
+               cands = [i for i,v in enumerate(val) if v == maxval]
+               winner = random.choice(cands)
+               maxtime = times[winner]
+
                dmspd.append(maxval)
                dmdir.append(maxdir)
                dmtime.append(maxtime)
