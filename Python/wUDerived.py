@@ -1,46 +1,18 @@
-###############################################################
-################## HELPER FUNCTIONS ###########################
-###############################################################
-#
-def loadDailyVariableRange(station, startDate, endDate, \
-                           variable, castFloat=False):
-     # generate a list of values for a specified variable from
-     # a specified station over a specified range of dates
-     vals = []
-     with open('CSV_DATA/' + station + '.csv','r') as infile:
-          header = infile.readline().strip().split(', ')
-          datepos = header.index('date')
-          varpos = header.index(variable)
-          recording = False
-          for nline in infile:
-               nlist = nline.strip().split(', ')
-               nday = nlist[datepos]
-               if nday == startDate:
-                    recording = True
-               if recording:
-                    if castFloat:
-                         vals.append(float(nlist[varpos]))
-                    else:
-                         vals.append(nlist[varpos])
-               if nday == endDate:
-                    recording = False
-                    break
-     return vals
-
 ################################################################
 ################## DERIVED STATISTICS ##########################
 ################################################################
 #
 def dailyTempRange(station, startDate, endDate):
      import datetime
+     import wUUtils as Util
      # get daily range (positive if max occurs later than min)
-     maximum = loadDailyVariableRange(station, startDate, endDate, \
+     maximum = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TempMax', castFloat=True)
-     minimum = loadDailyVariableRange(station, startDate, endDate, \
+     minimum = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TempMin', castFloat=True)
-     maxTime = loadDailyVariableRange(station, startDate, endDate, \
+     maxTime = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TempMaxTime', castFloat=False)
-     minTime = loadDailyVariableRange(station, startDate, endDate, \
+     minTime = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TempMinTime', castFloat=False)
      # positive if maximum occurs later than minimum
      plusminus = [2*int(datetime.datetime.strptime(maxTime[i],"%Y-%m-%d %H:%M:%S")
@@ -55,14 +27,15 @@ def dailyTempRange(station, startDate, endDate):
 #
 def dailyPressRange(station, startDate, endDate):
      import datetime
+     import wUUtils as Util
      # get daily range (positive if max occurs later than min)
-     maximum = loadDailyVariableRange(station, startDate, endDate, \
+     maximum = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'PressMax', castFloat=True)
-     minimum = loadDailyVariableRange(station, startDate, endDate, \
+     minimum = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'PressMin', castFloat=True)
-     maxTime = loadDailyVariableRange(station, startDate, endDate, \
+     maxTime = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'PressMaxTime', castFloat=False)
-     minTime = loadDailyVariableRange(station, startDate, endDate, \
+     minTime = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'PressMinTime', castFloat=False)
      # positive if maximum occurs later than minimum
      plusminus = [2*int(datetime.datetime.strptime(maxTime[i],"%Y-%m-%d %H:%M:%S")
@@ -77,49 +50,56 @@ def dailyPressRange(station, startDate, endDate):
 #
 def isWesterly(station, startDate, endDate):
      # binary variable for max wind (0 = easterly, 1 = westerly)
-     windDir = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     windDir = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'WindMaxDir', castFloat=True)
      return [int(w > 180.0 and w < 360.0) for w in windDir]
 
 #
 def isEasterly(station, startDate, endDate):
      # binary variable for max wind (0 = easterly, 1 = westerly)
-     windDir = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     windDir = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'WindMaxDir', castFloat=True)
      return [int(w > 0.0 and w < 180.0) for w in windDir]
 
 #
 def isSoutherly(station, startDate, endDate):
      # binary variable for max wind (0 = northerly, 1 = southerly)
-     windDir = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     windDir = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'WindMaxDir', castFloat=True)
      return [int(w > 90.0 and w < 270.0) for w in windDir]
      
 #
 def isNortherly(station, startDate, endDate):
      # binary variable for max wind (0 = northerly, 1 = southerly)
-     windDir = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     windDir = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'WindMaxDir', castFloat=True)
      return [int(w > 270.0 or w < 90.0) for w in windDir]
      
 #
 def windQuadrant(station, startDate, endDate):
      # integer variable for quadrant of maximum wind
-     windDir = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     windDir = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'WindMaxDir', castFloat=True)
      return [int(w)/90 for w in windDir]
 
 #
 def isFoggy(station, startDate, endDate):
      # binary variable for fogginess (visibility < 5 km)
-     visibility = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     visibility = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'VisibilityMean', castFloat=True)
      return [int(v < 5.0) for v in visibility]
 
 #
 def isNotFoggy(station, startDate, endDate):
      # binary variable for fogginess (visibility < 5 km)
-     visibility = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     visibility = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'VisibilityMean', castFloat=True)
      return [int(v > 5.0) for v in visibility]
 
@@ -130,9 +110,10 @@ def isNotFoggy(station, startDate, endDate):
 def isMorningMinTemp(station, startDate, endDate):
      # binary variable for minimum temperature occurring before noon local time
      import datetime
-     mTime = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     mTime = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TempMinTime', castFloat=False)
-     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+     timeZone = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TimeZone', castFloat=True)
      # convert minTime to datetime
      mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
@@ -145,9 +126,10 @@ def isMorningMinTemp(station, startDate, endDate):
 def isMorningMaxTemp(station, startDate, endDate):
      # binary variable for maximum temperature occurring before noon local time
      import datetime
-     mTime = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     mTime = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TempMaxTime', castFloat=False)
-     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+     timeZone = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TimeZone', castFloat=True)
      # convert maxTime to datetime
      mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
@@ -160,9 +142,10 @@ def isMorningMaxTemp(station, startDate, endDate):
 def isDaytimeMinPress(station, startDate, endDate):
      # binary variable for minimum pressure occurring before noon local time
      import datetime
-     mTime = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     mTime = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'PressMinTime', castFloat=False)
-     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+     timeZone = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TimeZone', castFloat=True)
      # convert minTime to datetime
      mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
@@ -175,9 +158,10 @@ def isDaytimeMinPress(station, startDate, endDate):
 def isDaytimeMaxPress(station, startDate, endDate):
      # binary variable for maximum pressure occurring before noon local time
      import datetime
-     mTime = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     mTime = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'PressMaxTime', castFloat=False)
-     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+     timeZone = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TimeZone', castFloat=True)
      # convert maxTime to datetime
      mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
@@ -190,9 +174,10 @@ def isDaytimeMaxPress(station, startDate, endDate):
 def isMorningMaxWind(station, startDate, endDate):
      # binary variable for maximum wind speed occurring before noon local time
      import datetime
-     mTime = loadDailyVariableRange(station, startDate, endDate, \
+     import wUUtils as Util
+     mTime = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'WindMaxTime', castFloat=False)
-     timeZone = loadDailyVariableRange(station, startDate, endDate, \
+     timeZone = Util.loadDailyVariableRange(station, startDate, endDate, \
                            'TimeZone', castFloat=True)
      # convert maxTime to datetime
      mTime = [datetime.datetime.strptime(mm,"%Y-%m-%d %H:%M:%S") for mm in mTime]
