@@ -101,7 +101,7 @@ def plotAdvectionOnMap(targetStation, variable, date, \
      plt.show()
 
 #
-def plotWindVectorsOnMap(date):
+def plotWindVectorsOnMap(date, showIt=True):
      from mpl_toolkits.basemap import Basemap
      import matplotlib.pyplot as plt
      import wUUtils as Util
@@ -134,10 +134,11 @@ def plotWindVectorsOnMap(date):
           plt.arrow(xpt[icity],ypt[icity],dx,dy,color='r',width=12000,head_length=40000,head_width=40000)
           plt.text(xpt[icity]+30000,ypt[icity]+20000,cityName[icity], size='large')
      plt.title("Daily-mean wind: " + date)
-     plt.show()
+     if showIt:
+          plt.show()
 
 #
-def plotMeanWindVectorsOnMap(startDate, endDate):
+def plotMeanWindVectorsOnMap(startDate, endDate, showIt=True):
      import numpy as np
      import wUUtils as Util
      from mpl_toolkits.basemap import Basemap
@@ -178,7 +179,8 @@ def plotMeanWindVectorsOnMap(startDate, endDate):
           plt.arrow(xpt[istation],ypt[istation],dx,dy,color='r',width=12000,head_length=40000,head_width=40000)
           plt.text(xpt[istation]+30000,ypt[istation]+20000,stations[istation], size='large')
      plt.title("Time-mean Wind: " + startDate + " to " + endDate)
-     plt.show()
+     if showIt:
+          plt.show()
 
 
 ###############################################################
