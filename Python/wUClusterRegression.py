@@ -512,16 +512,23 @@ def pcaClusterPredict(modelParams, startDate, endDate, actual=True):
           # convert features and target to arrays
           featureClusters[icl] = (np.array(featureClusters[icl])).T
           # make predictions
-          preds.append(regr.predict(featureClusters[icl]))
+          if len(featureClusters[icl]) > 0:
+               preds.append(regr.predict(featureClusters[icl]))
+          else:
+               preds.append([])
           if actual:
                targetClusters[icl] = np.array(targetClusters[icl])
                print('Cluster %d, %d rows:' % (icl,len(dateClusters[icl])) )
-               r2 = regrs[icl].score(featureClusters[icl],targetClusters[icl])
-               print('  R^2_mean:' + '\t' + str(r2))
-               rmse = np.sqrt(((preds[icl] - targetClusters[icl])**2).mean())
-               print('  RMSE:\t' + '\t' + str(rmse))
-               RMSE.append(rmse)
-               R2.append(r2)
+               if len(featureClusters[icl]) > 0:
+                    r2 = regrs[icl].score(featureClusters[icl],targetClusters[icl])
+                    print('  R^2_mean:' + '\t' + str(r2))
+                    rmse = np.sqrt(((preds[icl] - targetClusters[icl])**2).mean())
+                    print('  RMSE:\t' + '\t' + str(rmse))
+                    RMSE.append(rmse)
+                    R2.append(r2)
+               else:
+                    RMSE.append(None)
+                    R2.append(None)
      
      # assemble predictions into one list
      date_list_mixed = np.concatenate(dateClusters).tolist()
