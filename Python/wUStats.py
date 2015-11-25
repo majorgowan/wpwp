@@ -30,7 +30,7 @@ def collectAllStats(stationList = None):
           PressMax, PressMaxTime = dailyMax(data,'Sea Level PressurehPa',1)         
           HumidityMean = dailyMean(data,'Humidity')
           WindMaxSpd, WindMaxDir, WindMaxTime = dailyMaxWind(data)
-          
+
           addWindVectors(data)
           WindMeanX = dailyMean(data,'xSpeed')
           WindMeanY = dailyMean(data,'ySpeed')
@@ -43,8 +43,8 @@ def collectAllStats(stationList = None):
                 + 'WindMeanX, WindMeanY'
           # print(headString)
           outfile.write(headString + '\n')
-          for ii in range(len(dates)):
-               dataString = dates[ii].isoformat() + ', '
+          for ii, dd in enumerate(dates):
+               dataString = dd.isoformat() + ', '
                dataString += unicode(TimeZone[ii]) + ', '
                dataString += unicode('%.2f' % TempMean[ii]) + ', '
                dataString += unicode(TempMin[ii]) + ', '

@@ -183,7 +183,7 @@ def getJSON(station, year, month):
           data = json.load(infile)
      # make list of dates
      dates = []
-     for day in range(1,daysInMonth(year,month)+1):
+     for day in range(1,len(data)+1):
          dates.append(datetime.date(year,month,day))
      return dates, data
 

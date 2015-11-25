@@ -1053,6 +1053,33 @@ def compareStationsMultiCity(stations, \
           perfList.append(model_perf)
      return perfList
 
+#
+def compareStationsPCA(stations, \
+                       startTrain, endTrain, startTest, endTest, \
+                       features, ncomp, targetVar='TempMax', \
+                       lag=1, order=0):
+     # list of performance measures on test set
+     perfList = []
+     for targetStation in stations:
+          print('\n' + targetStation + ':')
+          # move targetStation to first in list of stations
+          otherStations = [s for s in stations if s != targetStation]
+          sortedStations = [targetStation] + otherStations
+          # train model
+          featureData, target, model_params = \
+               pcaTaylorModel(sortedStations, \
+                              startTrain, endTrain, \
+                              features, ncomp, targetVar, \
+                              lag, order, verbose = False)
+          # test model
+          date_list, pred, target, model_perf = \
+               pcaTaylorPredict(model_params, \
+                                startTest, endTest, \
+                                actual = True)
+          model_perf['station'] = targetStation
+          perfList.append(model_perf)
+     return perfList
+
 ###############################################################
 ################## PLOT RESULTS ###############################
 ###############################################################
