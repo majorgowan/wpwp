@@ -156,7 +156,7 @@ def putJSON(dates, data, station, year, month):
      import os
      # check if station folder exists
      if not os.path.exists('JSON_DATA/' + station):
-         os.mkdir('JSON_DATA/' + station)
+         os.makedirs('JSON_DATA/' + station)
      # create filename
      filename = 'JSON_DATA/' + station + '/'
      filename += station + '_' + str(year) + '_'
