@@ -166,8 +166,8 @@ def VariableWithInset(data, insetData, \
           m1.drawmapboundary(fill_color='aqua')
           # convert data to arrays:
           x, y, z = np.array(lon), np.array(lat), np.array(insetData[iax])
-          print('\niax ' + str(iax) + ':')
-          print(insetData[iax])
+          # print('\niax ' + str(iax) + ':')
+          # print(insetData[iax])
           # map data points to projection coordinates
           xmap, ymap = m1(x,y)
           # Set up a regular grid of interpolation points
