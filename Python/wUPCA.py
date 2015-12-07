@@ -116,3 +116,81 @@ def pcaPredict(transform_params, startDate, endDate):
           pcaData.append(pcaData1)
      return pcaData
 
+###############################################################
+################## PCA DECOMPOSITION IF DATA ALREADY SAVED ####
+###############################################################
+#
+#
+def pcaConvertOnly(featureData, nstations, ncomp=None):
+     # given a set of featureData (!) at a set of stations,
+     #   - for each feature, rescale data and 
+     #     compute the leading ncomp principal components
+     #   - return the list of values of each pca component
+     #   - return a dictionary containing:
+     #      - a list of the feature names
+     #      - a list of the station names
+     #      - the number of pca per feature
+     #      - a list of the scaler transforms (one per feature)
+     #      - a list of the pca transform (one per feature)
+     import numpy as np
+     import wUUtils as Util
+     scalers = []
+     pcas = []
+     pcaData = []
+     nfeatures = len(featureData)/nstations
+     if ncomp == None:    # compute all PC for each feature
+          nc = nfeatures*[nstations]
+     else:
+          nc = ncomp
+     for ifeat in range(nfeatures):
+          start = ifeat*nstations
+          finish = (ifeat+1)*nstations
+          data = featureData[start:finish]
+          # convert data to a numpy array with features as columns
+          data = np.array(data).T
+          # compute pca transform and standardization transform
+          pc, scaler = pcaComp(data, nc[ifeat])
+          # transform data to standardized pca space
+          pcaData1 = pcaTransform(pc, scaler, data)
+          # convert to a list of principal components
+          pcaData1 = (pcaData1.T).tolist()
+
+          # add transforms and principal components to corresponding lists
+          scalers.append(scaler)
+          pcas.append(pc)
+          pcaData.append(pcaData1)
+
+     transform_params = { \
+          'nstations': nstations, \
+          'nfeatures': nfeatures, \
+          'ncomp': nc, \
+          'scalers': scalers, \
+          'pcas': pcas }
+     return pcaData, transform_params
+
+#
+def pcaPredictOnly(featureData, transform_params):
+     # apply pca and scaling transform constructed on a training
+     # set to an out-of-sample (or in-sample!) set
+     import numpy as np
+     import wUUtils as Util
+     nstations = transform_params['nstations']
+     nfeatures = transform_params['nfeatures']
+     scalers = transform_params['scalers']
+     pcas = transform_params['pcas']
+
+     pcaData = []
+     for ifeat in range(nfeatures):
+          start = ifeat*nstations
+          finish = (ifeat+1)*nstations
+          data = featureData[start:finish]
+          # convert data to a numpy array with features as columns
+          data = np.array(data).T
+          # transform data to standardized pca space
+          pcaData1 = pcaTransform(pcas[ifeat], scalers[ifeat], data)
+          # convert to a list of principal components
+          pcaData1 = (pcaData1.T).tolist()
+          # add pc data to list
+          pcaData.append(pcaData1)
+     return pcaData
+

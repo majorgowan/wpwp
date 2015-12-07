@@ -6,7 +6,12 @@ def pcaClusterModel(stations, startDate, endDate, \
                    features, ncomp=None, \
                    clusterVars=[], nclusters=1, \
                    targetVar='TempMax', \
+                   smoothWindow=5, \
                    lag=1, order=0, ranseed=666, verbose=False):
+     #
+     # ******** instead of raw data, first subtract "climatology" from
+     # ******** all features and then proceed as usual
+     #
      # build regression model to predict "variable" for a single
      # station using training data from multiple stations 
      # between startdate and enddate.
@@ -34,21 +39,46 @@ def pcaClusterModel(stations, startDate, endDate, \
      #           (also maximum order of time derivative)
      import numpy as np
      import wUUtils as Util
-     import wUPCA
+     import wUPCA as PCA
+     reload(PCA)
      import wUCluster as Clust
      import wUClimatology as Climatology
+     reload(Climatology)
      from sklearn import preprocessing
      from sklearn import linear_model
-     # load target variable data
+     # make date list 
+     date_list = Util.dateList(startDate, endDate)
+     # load target variable
      target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                         targetVar, castFloat=True)
-     # shift vector by lag
+     # compute climatology for target variable
+     climatologyTarget = Climatology.makeClimatologies(stations, startDate, endDate, \
+                                                       [targetVar], smoothWindow)
+     climatologyTarget = climatologyTarget[0]
+     # subtract climatology from target variable to get dependent variable
+     target = Climatology.subtractClimatology(target, date_list, climatologyTarget)
+     # shift target by lag
      target = target[lag:]
-     # load features data and compute PC
-     pcaData, transformParams = wUPCA.pcaConvert(stations, features, \
-                                                 startDate, endDate, ncomp)
+
+     # load feature data
+     featureData = []
+     for station in stations:
+          for feature in features:
+               # print("Adding " + feature + " from " + station)
+               fd = Util.loadDailyVariableRange(station, startDate, endDate, \
+                             feature, castFloat=True)
+               featureData.append(fd)
+     # compute climatologies for features
+     climatologyFeatures = Climatology.makeClimatologies(stations, startDate, endDate, \
+                                                         features, smoothWindow)
+     # subtract climatologies from data
+     featureData = [Climatology.subtractClimatology(fd, date_list, climatologyFeatures[i/len(stations)]) \
+                     for i, fd in enumerate(featureData)]
+     # compute PC of featureData
+     pcaData, transformParams = PCA.pcaConvertOnly(featureData, len(stations), ncomp)
      # flatten featureData into single list of lists, while shortening by lag
      featureData = [data[:(-lag)] for dataList in pcaData for data in dataList] 
+
      # number of PC-transformed features
      if ncomp == None:
           nfeat = len(stations)*len(features)
@@ -139,19 +169,23 @@ def pcaClusterModel(stations, startDate, endDate, \
             'regrs': regrs, \
             'lag': lag, \
             'order': order, \
-            'transformParams': transformParams}
+            'transformParams': transformParams, \
+            'climatologyTarget': climatologyTarget, \
+            'climatologyFeatures': climatologyFeatures}
 
      return featureData, target, modelParams
 
 #
-def pcaClusterPredict(modelParams, startDate, endDate, actual=True):
+def pcaClusterPredict(modelParams, startDate, endDate, actual=True, absolute=False):
      # predict targetVar for a single station using 
      # previously generated regression model
      import numpy as np
      import wUUtils as Util
      import wUCluster as Clust
-     import wUPCA
-     reload(wUPCA)
+     import wUPCA as PCA
+     reload(PCA)
+     import wUClimatology as Climatology
+     reload(Climatology)
      # extract city and feature data
      stations = modelParams['stations']
      targetVar = modelParams['targetVar']
@@ -168,24 +202,41 @@ def pcaClusterPredict(modelParams, startDate, endDate, actual=True):
      scaler = clusterParams['scaler']
      clusterer = clusterParams['clusterer']
 
+     climatologyTarget = modelParams['climatologyTarget']
+     climatologyFeatures = modelParams['climatologyFeatures']
+
      # build list of dates in datetime format
      date_list = Util.dateList(startDate, endDate)
-     date_list = date_list[(lag+order):]
+
      # if actual data available
      if actual:
           # load target variable data
           target = Util.loadDailyVariableRange(stations[0], startDate, endDate, \
                              targetVar, castFloat=True)
+          # subtract climatology from target variable to get dependent variable
+          target = Climatology.subtractClimatology(target, date_list, climatologyTarget)
           # shift vector by lag
           target = target[lag:]
           target = np.array(target)
      else:
           target = None
 
-     # load features data and compute PC
-     pcaData = wUPCA.pcaPredict(transformParams, startDate, endDate)
+     # load feature data
+     featureData = []
+     for station in stations:
+          for feature in features:
+               # print("Adding " + feature + " from " + station)
+               fd = Util.loadDailyVariableRange(station, startDate, endDate, \
+                             feature, castFloat=True)
+               featureData.append(fd)
+     # subtract climatologies from data
+     featureData = [Climatology.subtractClimatology(fd, date_list, climatologyFeatures[i/len(stations)]) \
+                     for i, fd in enumerate(featureData)]
+     # compute PC of featureData
+     pcaData = PCA.pcaPredictOnly(featureData, transformParams)
      # flatten featureData into single list of lists, while shortening by lag
      featureData = [data[:(-lag)] for dataList in pcaData for data in dataList] 
+
      # number of PC-transformed features
      nfeat = sum(ncomp) 
      # add in "derivative" terms
@@ -200,6 +251,9 @@ def pcaClusterPredict(modelParams, startDate, endDate, actual=True):
           featureData[column] = featureData[column][-nrows:]
      if actual:
           target = target[-nrows:]
+     
+     # shorten date_list (line it up with target)
+     date_list = date_list[(lag+order):]
 
      # assign points (rows) to clusters
      clusterData = np.array([featureData[ii] for ii in cols]).T
@@ -260,6 +314,11 @@ def pcaClusterPredict(modelParams, startDate, endDate, actual=True):
           modelPerf = {'RMSE': RMSE, 'R2': R2, 'RMSE_total': rmse }
      else:
           modelPerf = None
+     
+     if absolute:
+          # return predictions and target with climatology added back
+          target = Climatology.addClimatology(target, date_list, climatologyTarget)
+          pred = Climatology.addClimatology(pred, date_list, climatologyTarget)
 
      return date_list, pred, target, featureData, classes, modelPerf
 

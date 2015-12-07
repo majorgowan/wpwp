@@ -45,7 +45,7 @@ def subtractClimatology(data, date_list, climatology):
 
      pert = []
      for i,val in enumerate(data):
-          doly = datetime.date(2008,date_list[i].month,date_list[i].day)
+          doly = datetime.datetime(2008,date_list[i].month,date_list[i].day)
           ldoy = (doly-leap_year[0]).days
           pert.append(val-climatology[ldoy])
      return pert
@@ -62,7 +62,7 @@ def addClimatology(pert, date_list, climatology):
 
      data = []
      for i,val in enumerate(pert):
-          doly = datetime.date(2008,date_list[i].month,date_list[i].day)
+          doly = datetime.datetime(2008,date_list[i].month,date_list[i].day)
           ldoy = (doly-leap_year[0]).days
           data.append(val+climatology[ldoy])
      return data
