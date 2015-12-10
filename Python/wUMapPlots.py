@@ -214,7 +214,7 @@ def contourPlot(lon, lat, data, title='data'):
      
 #
 def contourPlotOnMap(lon, lat, data, title='data', \
-                     width_fac = 16, height_fac = 12):
+                     width_fac = 16, height_fac = 12, showIt=True):
      import numpy as np
      import matplotlib.pyplot as plt
      import scipy.interpolate
@@ -224,7 +224,7 @@ def contourPlotOnMap(lon, lat, data, title='data', \
      # compute centre of lon/lat set
      lon0, lat0 = 0.5*(np.min(lon)+np.max(lon)), \
                   0.5*(np.min(lat)+np.max(lat))
-     print('centre at: ', lon0, lat0)
+     # print('centre at: ', lon0, lat0)
      # open new figure window
      plt.figure()
      # setup Lambert Conformal basemap.
@@ -258,8 +258,9 @@ def contourPlotOnMap(lon, lat, data, title='data', \
      # add colorbar.
      cbar = m.colorbar(cs,location='bottom',pad="5%")
      plt.title(title)
-     # display plot
-     plt.show()
+     if showIt:
+          # display plot
+          plt.show()
 
 #
 def contourPlotStationsOnMap(stations, data, title='data', \
