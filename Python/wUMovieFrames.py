@@ -26,7 +26,7 @@ def contourPlotDataOnMapFrame(data, contours, npts = 20, \
                   0.5*(np.min(lat)+np.max(lat))
      # print('centre at: ', lon0, lat0)
      # open new figure window
-     plt.figure()
+     fig = plt.figure()
      # setup Lambert Conformal basemap.
      m = Basemap(width=width_fac*100000,height=height_fac*100000, \
                  projection='lcc', resolution='i', \
@@ -69,7 +69,7 @@ def contourPlotDataOnMapFrame(data, contours, npts = 20, \
      filename = '%s_frame_%03d.png' % (figname, frameNum)
      # print('saving file: ' + filename)
      plt.savefig(filename, bbox_inches='tight')
-     plt.close()
+     plt.close(fig)
 
 #
 def contourPlotVarOnMapFrame(variable, date, \
