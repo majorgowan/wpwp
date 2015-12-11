@@ -125,8 +125,8 @@ def VariableWithInset(data, insetData, \
      lon, lat = Util.getStationLonLat(stations)
      # convert data to arrays:
      x, y, z = np.array(lon), np.array(lat), np.array(data)
-     print('\nmain axes:')
-     print(data)
+     # print('\nmain axes:')
+     # print(data)
      # map data points to projection coordinates
      xmap, ymap = m(x,y)
      # Set up a regular grid of interpolation points
